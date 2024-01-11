@@ -30,8 +30,8 @@ delta = 0.001             # 濃度勾配の2点間距離
 bin_number = 50           # ヒストグラムのビンの数(濃度勾配)
 
 [analysis_use_function]
-# 0: analysis_klinotaxis_bearing_errbar_std_max_min
-# 1: analysis_klinotaxis_bearing_errbar_std
-# 2: analysis_klinotaxis_nomal_gradient_errbar_std_max_min
-# 3: analysis_klinotaxis_translational_gradient_errbar_std_positive_negative
-mode = [3]
+# 0: analysis_klinotaxis_bearing_errbar_std_max_min(1:bearing, 2:turning_bias, 3:std, 4:max, 5:min)
+# 1: analysis_klinotaxis_bearing_errbar_std (1:bearing, 2:turning_bias, 3:std) おすめはしない
+# 2: analysis_klinotaxis_nomal_gradient_errbar_std_max_min (1:nomal_gradient, 2:turning_bias, 3:std, 4:max, 5:min)
+# 3: analysis_klinotaxis_translational_gradient_errbar_std_positive_negative (1:translational_gradient, 2:turning_bias, 3:std, 4:t_b_posi, 5:std_posi, 6:t_b_nega, 7:std_nega)
+mode = [0, 2, 3]
