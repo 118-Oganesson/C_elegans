@@ -841,6 +841,7 @@ pub mod analysis {
         pub read_result_json: String,
         pub bearing_vs_turning_bais_output: String,
         pub nomal_gradient_vs_turning_bais_output: String,
+        pub translational_gradient_vs_turning_bais_output: String,
     }
 
     #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -1327,7 +1328,8 @@ pub mod analysis {
             writeln!(file, "{}, {}, {}", bearing, turning_bias, err).unwrap();
         }
     }
-    pub fn klinotaxis_gradient(
+
+    pub fn klinotaxis_nomal_gradient(
         gene: &Gene,
         setting: &Setting,
         gauss_setting: &Gausssetting,
@@ -1530,7 +1532,7 @@ pub mod analysis {
         let hist_mean: Vec<Vec<f64>> = (0..analysis_setting.analysis_loop)
             .into_par_iter()
             .map(|_| {
-                let result: Vec<Vec<f64>> = klinotaxis_gradient(
+                let result: Vec<Vec<f64>> = klinotaxis_nomal_gradient(
                     &result_ga[analysis_setting.gene_number].gene,
                     liner_setting,
                     gauss_setting,
@@ -1602,7 +1604,7 @@ pub mod analysis {
             File::create(&file_name.nomal_gradient_vs_turning_bais_output).unwrap();
 
         // Iterate over the vectors and write each triplet of values to a line in the file
-        for ((((bearing, turning_bias), std), max), min) in normal_gradient_hist
+        for ((((nomal, turning_bias), std), max), min) in normal_gradient_hist
             .iter()
             .zip(turning_bias_hist.iter())
             .zip(error_bar_std.iter())
@@ -1612,12 +1614,306 @@ pub mod analysis {
             writeln!(
                 file,
                 "{}, {}, {}, {}, {}",
-                bearing, turning_bias, std, max, min
+                nomal, turning_bias, std, max, min
             )
             .unwrap();
         }
     }
 
+    pub fn klinotaxis_translational_gradient(
+        gene: &Gene,
+        setting: &Setting,
+        gauss_setting: &Gausssetting,
+        mode: usize,
+        periodic_number: usize,
+        periodic_number_drain: usize,
+        delta: f64,
+    ) -> Vec<Vec<f64>> {
+        //定数
+        let constant: Const = setting.const_new();
+        //遺伝子の受け渡し
+        let weight: GeneConst = gene.scaling();
+        //時間に関する定数をステップ数に変換
+        let time: Time = time_new(&weight, &constant);
+
+        //配列の宣言
+        let mut y: [[f64; 8]; 2] = [[0.0; 8]; 2];
+        let mut mu: [f64; 2] = [0.0; 2];
+        let mut phi: [f64; 2] = [0.0; 2];
+        let mut r: [[f64; 2]; 2] = [[0.0; 2]; 2];
+
+        //Vecの宣言
+        let mut r_vec: Vec<[f64; 2]> = vec![[0.0; 2]; 1];
+        let mut mu_vec: Vec<f64> = vec![0.0];
+
+        //初期濃度の履歴生成
+        let mut c_vec: VecDeque<f64> = VecDeque::new();
+        if mode == 0 {
+            for _ in 0..time.n_time + time.m_time {
+                c_vec.push_back(concentration(&constant, 0.0, 0.0));
+            }
+        } else if mode == 1 {
+            for _ in 0..time.n_time + time.m_time {
+                c_vec.push_back(gauss_concentration(gauss_setting, &constant, 0.0, 0.0));
+            }
+        }
+
+        //運動ニューロンの初期活性を0～1の範囲でランダム化
+        let _ = thread_rng().try_fill(&mut y[0][4..]);
+
+        //ランダムな向きで配置
+        let mut rng: rand::rngs::ThreadRng = thread_rng();
+        mu[0] = rng.gen_range(0.0..2.0 * PI);
+
+        //オイラー法
+        for k in 0..time.simulation_time - 1 {
+            //濃度の更新
+            c_vec.pop_front();
+            if mode == 0 {
+                c_vec.push_back(concentration(&constant, r[0][0], r[0][1]));
+            } else if mode == 1 {
+                c_vec.push_back(gauss_concentration(
+                    gauss_setting,
+                    &constant,
+                    r[0][0],
+                    r[0][1],
+                ));
+            }
+
+            let y_on_off: [f64; 2] = y_on_off(&weight, &time, &c_vec);
+            let y_osc: f64 = y_osc(&constant, k as f64 * constant.dt);
+
+            for i in 0..8 {
+                let mut synapse: f64 = 0.0;
+                let mut gap: f64 = 0.0;
+                for j in 0..8 {
+                    synapse += weight.w[j][i] * sigmoid(y[0][j] + weight.theta[j]);
+                    gap += weight.g[j][i] * (y[0][j] - y[0][i]);
+                }
+                //外部からの入力
+                let input: f64 = weight.w_on[i] * y_on_off[0]
+                    + weight.w_off[i] * y_on_off[1]
+                    + weight.w_osc[i] * y_osc;
+                //ニューロンの膜電位の更新
+                y[1][i] = y[0][i]
+                    + (-y[0][i] + synapse + gap + input) / constant.time_constant * constant.dt;
+            }
+
+            //方向の更新
+            let d: f64 = sigmoid(y[0][5] + weight.theta[5]) + sigmoid(y[0][6] + weight.theta[6]);
+            let v: f64 = sigmoid(y[0][4] + weight.theta[4]) + sigmoid(y[0][7] + weight.theta[7]);
+            phi[1] = phi[0];
+            phi[0] = weight.w_nmj * (d - v);
+            mu[1] = mu[0] + phi[0] * constant.dt;
+
+            //位置の更新
+            r[1][0] = r[0][0] + constant.velocity * (mu[0]).cos() * constant.dt;
+            r[1][1] = r[0][1] + constant.velocity * (mu[0]).sin() * constant.dt;
+
+            //Vecへの追加
+            r_vec.push(r[1]);
+            mu_vec.push(mu[1]);
+
+            //更新
+            for i in 0..8 {
+                y[0][i] = y[1][i];
+            }
+            mu[0] = mu[1];
+            for i in 0..2 {
+                r[0][i] = r[1][i];
+            }
+        }
+
+        // Translational gradient
+        let mut translational_gradient: Vec<f64> =
+            translational_gradient(&r_vec, &constant, &time, &periodic_number, delta);
+        // Turning bias
+        // let mut turning_bias: Vec<f64> = turning_bias_mu(&mu_vec, &time, &periodic_number);
+        let mut turning_bias: Vec<f64> = turning_bias_bear(&r_vec, &time, &periodic_number);
+
+        // 先頭の要素を削除
+        translational_gradient.drain(..periodic_number_drain * time.periodic_time);
+        turning_bias.drain(..periodic_number_drain * time.periodic_time);
+
+        // 結果
+        let result: Vec<Vec<f64>> = vec![translational_gradient, turning_bias];
+
+        result
+    }
+
+    pub fn translational_gradient(
+        r_vec: &[[f64; 2]],
+        constant: &Const,
+        time: &Time,
+        periodic_number: &usize,
+        delta: f64,
+    ) -> Vec<f64> {
+        let mut bearing_point: Vec<[[f64; 2]; 2]> = Vec::new();
+        for i in 0..time.simulation_time - 2 * periodic_number * time.periodic_time {
+            bearing_point.push([r_vec[i], r_vec[i + periodic_number * time.periodic_time]]);
+        }
+        let mut translational_gradient: Vec<f64> = Vec::new();
+
+        // 並進方向のベクトル
+        for bearing_point_item in &bearing_point {
+            let bearing_vec: [f64; 2] = [
+                bearing_point_item[1][0] - bearing_point_item[0][0],
+                bearing_point_item[1][1] - bearing_point_item[0][1],
+            ];
+
+            let magnitude_bearing: f64 =
+                (bearing_vec[0].powf(2.0) + bearing_vec[1].powf(2.0)).sqrt();
+
+            let translational_gradient_delta: [f64; 2] = [
+                bearing_vec[0] / magnitude_bearing * delta,
+                bearing_vec[1] / magnitude_bearing * delta,
+            ];
+
+            let translational: f64 =
+                (concentration(
+                    constant,
+                    bearing_point_item[0][0] + translational_gradient_delta[0],
+                    bearing_point_item[0][1] + translational_gradient_delta[1],
+                ) - concentration(constant, bearing_point_item[0][0], bearing_point_item[0][1]))
+                    / delta;
+
+            translational_gradient.push(translational);
+        }
+
+        translational_gradient
+    }
+
+    pub fn histgram_count_translational_gradient(
+        translational_gradient: &[f64],
+        turning_bias: &[f64],
+        bin_number: usize,
+    ) -> Vec<f64> {
+        //ヒストグラムの種
+        let mut turning_bias_mean: Vec<f64> = Vec::new();
+        let step_size: f64 = 0.02 / bin_number as f64;
+
+        for i in 0..bin_number {
+            let mut mean: Vec<f64> = Vec::new();
+            for (j, &translational_gradient_value) in translational_gradient.iter().enumerate() {
+                if ((-0.01 + (i as f64) * step_size) < translational_gradient_value)
+                    && (translational_gradient_value < (-0.01 + ((i + 1) as f64) * step_size))
+                {
+                    mean.push(turning_bias[j]);
+                }
+            }
+            // 平均値の計算
+            let mean_value: f64 = if !mean.is_empty() {
+                mean.iter().sum::<f64>() / mean.len() as f64
+            } else {
+                f64::NAN // もし mean が空なら NaN をセット
+            };
+            turning_bias_mean.push(mean_value);
+        }
+
+        turning_bias_mean
+    }
+
+    pub fn analysis_klinotaxis_translational_gradient_errbar_std_max_min(
+        result_ga: &[Ga],
+        file_name: &Filename,
+        liner_setting: &Setting,
+        gauss_setting: &Gausssetting,
+        analysis_setting: &Analysissetting,
+    ) {
+        let hist_mean: Vec<Vec<f64>> = (0..analysis_setting.analysis_loop)
+            .into_par_iter()
+            .map(|_| {
+                let result: Vec<Vec<f64>> = klinotaxis_translational_gradient(
+                    &result_ga[analysis_setting.gene_number].gene,
+                    liner_setting,
+                    gauss_setting,
+                    analysis_setting.mode,
+                    analysis_setting.periodic_number,
+                    analysis_setting.periodic_number_drain,
+                    analysis_setting.delta,
+                );
+
+                histgram_count_translational_gradient(
+                    &result[0],
+                    &result[1],
+                    analysis_setting.bin_number,
+                )
+            })
+            .collect::<Vec<Vec<f64>>>();
+
+        // ヒストグラムの作成
+        let mut translational_gradient_hist: Vec<f64> = Vec::new();
+        let mut turning_bias_hist: Vec<f64> = Vec::new();
+        let mut error_bar_std: Vec<f64> = Vec::new();
+        let mut error_bar_max: Vec<f64> = Vec::new();
+        let mut error_bar_min: Vec<f64> = Vec::new();
+
+        let step_size: f64 = 0.02 / analysis_setting.bin_number as f64;
+
+        for i in 0..analysis_setting.bin_number {
+            let mut mean: Vec<f64> = Vec::new();
+            for row in &hist_mean {
+                if !row[i].is_nan() {
+                    mean.push(row[i]);
+                }
+            }
+
+            // 平均値の計算
+            let mean_value: f64 = if !mean.is_empty() {
+                mean.iter().sum::<f64>() / mean.len() as f64
+            } else {
+                f64::NAN // もし mean が空なら NaN をセット
+            };
+
+            // エラーバーの計算
+            let max: f64 = if !mean.is_empty() {
+                mean.iter().cloned().fold(f64::NEG_INFINITY, f64::max)
+            } else {
+                f64::NAN
+            };
+
+            let min: f64 = if !mean.is_empty() {
+                mean.iter().cloned().fold(f64::INFINITY, f64::min)
+            } else {
+                f64::NAN
+            };
+
+            // 標準偏差の計算
+            let std: f64 = if !mean.is_empty() {
+                let variance: f64 =
+                    mean.iter().map(|&x| (x - mean_value).powi(2)).sum::<f64>() / mean.len() as f64;
+                variance.sqrt()
+            } else {
+                f64::NAN // もし mean が空なら NaN をセット
+            };
+
+            translational_gradient_hist.push(-0.01 + (i as f64) * step_size);
+            turning_bias_hist.push(mean_value);
+            error_bar_std.push(std);
+            error_bar_max.push(max);
+            error_bar_min.push(min);
+        }
+
+        // Open a file for writing
+        let mut file: File =
+            File::create(&file_name.translational_gradient_vs_turning_bais_output).unwrap();
+
+        // Iterate over the vectors and write each triplet of values to a line in the file
+        for ((((translational, turning_bias), std), max), min) in translational_gradient_hist
+            .iter()
+            .zip(turning_bias_hist.iter())
+            .zip(error_bar_std.iter())
+            .zip(error_bar_max.iter())
+            .zip(error_bar_min.iter())
+        {
+            writeln!(
+                file,
+                "{}, {}, {}, {}, {}",
+                translational, turning_bias, std, max, min
+            )
+            .unwrap();
+        }
+    }
     pub fn analysis() {
         // Result.jsonを読み込む
         let result_ga: Vec<Ga> = read_result();
@@ -1669,6 +1965,15 @@ pub mod analysis {
             } else if i == 2 {
                 // turning bias vs nomal gradient
                 analysis_klinotaxis_nomal_gradient_errbar_std_max_min(
+                    &result_ga,
+                    &file_name,
+                    &liner_setting,
+                    &gauss_setting,
+                    &analysis_setting,
+                );
+            } else if i == 3 {
+                // turning bias vs translational gradient
+                analysis_klinotaxis_translational_gradient_errbar_std_max_min(
                     &result_ga,
                     &file_name,
                     &liner_setting,
