@@ -839,9 +839,9 @@ pub mod analysis {
     #[derive(Clone, Debug, Serialize, Deserialize)]
     pub struct Filename {
         pub read_result_json: String,
-        pub bearing_vs_turning_bais_output: String,
-        pub nomal_gradient_vs_turning_bais_output: String,
-        pub translational_gradient_vs_turning_bais_output: String,
+        pub bearing_vs_turning_bias_output: String,
+        pub nomal_gradient_vs_turning_bias_output: String,
+        pub translational_gradient_vs_turning_bias_output: String,
     }
 
     #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -1265,7 +1265,7 @@ pub mod analysis {
         }
 
         // Open a file for writing
-        let mut file: File = File::create(&file_name.bearing_vs_turning_bais_output).unwrap();
+        let mut file: File = File::create(&file_name.bearing_vs_turning_bias_output).unwrap();
 
         // Iterate over the vectors and write each triplet of values to a line in the file
         for ((((bearing, turning_bias), std), max), min) in bearing_hist
@@ -1317,7 +1317,7 @@ pub mod analysis {
         let error_bar: &Vec<f64> = &result_hist[2];
 
         // Open a file for writing
-        let mut file: File = File::create(&file_name.bearing_vs_turning_bais_output).unwrap();
+        let mut file: File = File::create(&file_name.bearing_vs_turning_bias_output).unwrap();
 
         // Iterate over the vectors and write each triplet of values to a line in the file
         for ((bearing, turning_bias), &err) in bearing_hist
@@ -1601,7 +1601,7 @@ pub mod analysis {
 
         // Open a file for writing
         let mut file: File =
-            File::create(&file_name.nomal_gradient_vs_turning_bais_output).unwrap();
+            File::create(&file_name.nomal_gradient_vs_turning_bias_output).unwrap();
 
         // Iterate over the vectors and write each triplet of values to a line in the file
         for ((((nomal, turning_bias), std), max), min) in normal_gradient_hist
@@ -1787,13 +1787,16 @@ pub mod analysis {
         translational_gradient: &[f64],
         turning_bias: &[f64],
         bin_number: usize,
-    ) -> Vec<f64> {
-        //ヒストグラムの種
+    ) -> Vec<Vec<f64>> {
+        // ヒストグラムの種
         let mut turning_bias_mean: Vec<f64> = Vec::new();
+        let mut positive_mean: Vec<f64> = Vec::new();
+        let mut negative_mean: Vec<f64> = Vec::new();
         let step_size: f64 = 0.02 / bin_number as f64;
 
         for i in 0..bin_number {
             let mut mean: Vec<f64> = Vec::new();
+
             for (j, &translational_gradient_value) in translational_gradient.iter().enumerate() {
                 if ((-0.01 + (i as f64) * step_size) < translational_gradient_value)
                     && (translational_gradient_value < (-0.01 + ((i + 1) as f64) * step_size))
@@ -1801,26 +1804,49 @@ pub mod analysis {
                     mean.push(turning_bias[j]);
                 }
             }
+
             // 平均値の計算
             let mean_value: f64 = if !mean.is_empty() {
                 mean.iter().sum::<f64>() / mean.len() as f64
             } else {
                 f64::NAN // もし mean が空なら NaN をセット
             };
+
             turning_bias_mean.push(mean_value);
+
+            // 正の値のみの平均
+            let positive_values: Vec<f64> = mean.iter().cloned().filter(|&x| x > 0.0).collect();
+            let positive_mean_value: f64 = if !positive_values.is_empty() {
+                positive_values.iter().sum::<f64>() / positive_values.len() as f64
+            } else {
+                f64::NAN
+            };
+            positive_mean.push(positive_mean_value);
+
+            // 負の値のみの平均
+            let negative_values: Vec<f64> = mean.iter().cloned().filter(|&x| x < 0.0).collect();
+            let negative_mean_value: f64 = if !negative_values.is_empty() {
+                negative_values.iter().sum::<f64>() / negative_values.len() as f64
+            } else {
+                f64::NAN
+            };
+            negative_mean.push(negative_mean_value);
         }
 
-        turning_bias_mean
+        // 結果を返す
+        let result: Vec<Vec<f64>> = vec![turning_bias_mean, positive_mean, negative_mean];
+
+        result
     }
 
-    pub fn analysis_klinotaxis_translational_gradient_errbar_std_max_min(
+    pub fn analysis_klinotaxis_translational_gradient_errbar_std_positive_negative(
         result_ga: &[Ga],
         file_name: &Filename,
         liner_setting: &Setting,
         gauss_setting: &Gausssetting,
         analysis_setting: &Analysissetting,
     ) {
-        let hist_mean: Vec<Vec<f64>> = (0..analysis_setting.analysis_loop)
+        let hist_mean: Vec<Vec<Vec<f64>>> = (0..analysis_setting.analysis_loop)
             .into_par_iter()
             .map(|_| {
                 let result: Vec<Vec<f64>> = klinotaxis_translational_gradient(
@@ -1839,22 +1865,39 @@ pub mod analysis {
                     analysis_setting.bin_number,
                 )
             })
-            .collect::<Vec<Vec<f64>>>();
+            .collect::<Vec<Vec<Vec<f64>>>>();
 
         // ヒストグラムの作成
         let mut translational_gradient_hist: Vec<f64> = Vec::new();
         let mut turning_bias_hist: Vec<f64> = Vec::new();
+        let mut turning_bias_positive_hist: Vec<f64> = Vec::new();
+        let mut turning_bias_negative_hist: Vec<f64> = Vec::new();
         let mut error_bar_std: Vec<f64> = Vec::new();
-        let mut error_bar_max: Vec<f64> = Vec::new();
-        let mut error_bar_min: Vec<f64> = Vec::new();
+        let mut error_bar_positive_std: Vec<f64> = Vec::new();
+        let mut error_bar_negative_std: Vec<f64> = Vec::new();
 
         let step_size: f64 = 0.02 / analysis_setting.bin_number as f64;
 
         for i in 0..analysis_setting.bin_number {
             let mut mean: Vec<f64> = Vec::new();
+            let mut positive_mean: Vec<f64> = Vec::new();
+            let mut negative_mean: Vec<f64> = Vec::new();
+
             for row in &hist_mean {
-                if !row[i].is_nan() {
-                    mean.push(row[i]);
+                if !row[0][i].is_nan() {
+                    mean.push(row[0][i]);
+                }
+            }
+
+            for row in &hist_mean {
+                if !row[1][i].is_nan() {
+                    positive_mean.push(row[1][i]);
+                }
+            }
+
+            for row in &hist_mean {
+                if !row[2][i].is_nan() {
+                    negative_mean.push(row[2][i]);
                 }
             }
 
@@ -1865,17 +1908,16 @@ pub mod analysis {
                 f64::NAN // もし mean が空なら NaN をセット
             };
 
-            // エラーバーの計算
-            let max: f64 = if !mean.is_empty() {
-                mean.iter().cloned().fold(f64::NEG_INFINITY, f64::max)
+            let positive_mean_value: f64 = if !positive_mean.is_empty() {
+                positive_mean.iter().sum::<f64>() / positive_mean.len() as f64
             } else {
-                f64::NAN
+                f64::NAN // もし mean が空なら NaN をセット
             };
 
-            let min: f64 = if !mean.is_empty() {
-                mean.iter().cloned().fold(f64::INFINITY, f64::min)
+            let negative_mean_value: f64 = if !negative_mean.is_empty() {
+                negative_mean.iter().sum::<f64>() / negative_mean.len() as f64
             } else {
-                f64::NAN
+                f64::NAN // もし mean が空なら NaN をセット
             };
 
             // 標準偏差の計算
@@ -1887,29 +1929,67 @@ pub mod analysis {
                 f64::NAN // もし mean が空なら NaN をセット
             };
 
+            let positive_std: f64 = if !positive_mean.is_empty() {
+                let variance: f64 = positive_mean
+                    .iter()
+                    .map(|&x| (x - positive_mean_value).powi(2))
+                    .sum::<f64>()
+                    / positive_mean.len() as f64;
+                variance.sqrt()
+            } else {
+                f64::NAN // もし mean が空なら NaN をセット
+            };
+
+            let negative_std: f64 = if !negative_mean.is_empty() {
+                let variance: f64 = negative_mean
+                    .iter()
+                    .map(|&x| (x - negative_mean_value).powi(2))
+                    .sum::<f64>()
+                    / negative_mean.len() as f64;
+                variance.sqrt()
+            } else {
+                f64::NAN // もし mean が空なら NaN をセット
+            };
+
             translational_gradient_hist.push(-0.01 + (i as f64) * step_size);
             turning_bias_hist.push(mean_value);
+            turning_bias_positive_hist.push(positive_mean_value);
+            turning_bias_negative_hist.push(negative_mean_value);
             error_bar_std.push(std);
-            error_bar_max.push(max);
-            error_bar_min.push(min);
+            error_bar_positive_std.push(positive_std);
+            error_bar_negative_std.push(negative_std);
         }
 
         // Open a file for writing
         let mut file: File =
-            File::create(&file_name.translational_gradient_vs_turning_bais_output).unwrap();
+            File::create(&file_name.translational_gradient_vs_turning_bias_output).unwrap();
 
         // Iterate over the vectors and write each triplet of values to a line in the file
-        for ((((translational, turning_bias), std), max), min) in translational_gradient_hist
+        for (
+            (
+                ((((translational, turning_bias), std), positive_turning_bias), positive_std),
+                negative_turning_bias,
+            ),
+            negative_std,
+        ) in translational_gradient_hist
             .iter()
             .zip(turning_bias_hist.iter())
             .zip(error_bar_std.iter())
-            .zip(error_bar_max.iter())
-            .zip(error_bar_min.iter())
+            .zip(turning_bias_positive_hist.iter())
+            .zip(error_bar_positive_std.iter())
+            .zip(turning_bias_negative_hist.iter())
+            .zip(error_bar_negative_std.iter())
         {
             writeln!(
                 file,
-                "{}, {}, {}, {}, {}",
-                translational, turning_bias, std, max, min
+                "{}, {}, {}, {}, {}, {}, {}",
+                translational,
+                turning_bias,
+                std,
+                positive_turning_bias,
+                positive_std,
+                negative_turning_bias,
+                negative_std,
             )
             .unwrap();
         }
@@ -1973,7 +2053,7 @@ pub mod analysis {
                 );
             } else if i == 3 {
                 // turning bias vs translational gradient
-                analysis_klinotaxis_translational_gradient_errbar_std_max_min(
+                analysis_klinotaxis_translational_gradient_errbar_std_positive_negative(
                     &result_ga,
                     &file_name,
                     &liner_setting,

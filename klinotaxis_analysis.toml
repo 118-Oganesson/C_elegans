@@ -1,8 +1,8 @@
 [file_name]
 read_result_json = "./result/Result.json"
-bearing_vs_turning_bais_output = "./output/b_vs_t.txt"
-nomal_gradient_vs_turning_bais_output = "./output/n_vs_t.txt"
-translational_gradient_vs_turning_bais_output = "./output/t_vs_t.txt"
+bearing_vs_turning_bias_output = "./output/b_vs_t.txt"
+nomal_gradient_vs_turning_bias_output = "./output/n_vs_t.txt"
+translational_gradient_vs_turning_bias_output = "./output/t_vs_t.txt"
 
 [liner_setting]
 alpha = [-0.01001, -0.01] # 濃度勾配の範囲
@@ -33,5 +33,5 @@ bin_number = 50           # ヒストグラムのビンの数(濃度勾配)
 # 0: analysis_klinotaxis_bearing_errbar_std_max_min
 # 1: analysis_klinotaxis_bearing_errbar_std
 # 2: analysis_klinotaxis_nomal_gradient_errbar_std_max_min
-# 3: analysis_klinotaxis_translational_gradient_errbar_std_max_min
+# 3: analysis_klinotaxis_translational_gradient_errbar_std_positive_negative
 mode = [3]
