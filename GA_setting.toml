@@ -1,0 +1,35 @@
+# 遺伝的アルゴリズムの設定
+[Ga_setting]
+average = 50   # CI測定時の平均回数
+gen_size = 22  # 遺伝子の長さ
+ga_count = 100 # 遺伝的アルゴリズムの実行回数
+n_gen = 300    # 世代数
+pop_size = 100 # 個体数
+sel_top = 30   # 選択する上位個体の数
+mat_pb = 0.8   # 交差する確率
+mut_pb = 0.3   # 変異する確率
+re_val = 50    # 全個体を再評価する間隔
+
+# 線虫のシミュレーションの設定（遺伝的アルゴリズムの時）
+[setting]
+alpha = [-0.38, -0.01]  # 濃度勾配の範囲
+x_peak = 4.5            # 勾配のピークのx座標 /cm
+y_peak = 0.0            # 勾配のピークのy座標 /cm
+dt = 0.01               # 時間刻みの幅 /s
+periodic_time = 4.2     # 移動の1サイクルの継続時間 /s
+frequency = 0.033       # 方向の平均周波数 /Hz
+velocity = 0.022        # 線虫の速度 /cm/s
+simulation_time = 500.0 # シミュレート時間 /s
+time_constant = 0.1     # 時定数 /s
+
+# 線虫のシミュレーションの設定（最終評価の時）
+[testing]
+alpha = [-0.38, -0.01]
+x_peak = 4.5
+y_peak = 0.0
+dt = 0.01
+periodic_time = 4.2
+frequency = 0.033
+velocity = 0.022
+simulation_time = 500.0
+time_constant = 0.1

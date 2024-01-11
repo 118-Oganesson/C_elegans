@@ -1,0 +1,35 @@
+[file_name]
+read_result_json = "Result.json"
+bearing_vs_turning_bais_output = "b_vs_t.txt"
+nomal_gradient_vs_turning_bais_output = "n_vs_t.txt"
+
+[liner_setting]
+alpha = [-0.01001, -0.01] # 濃度勾配の範囲
+x_peak = 4.5              # 勾配のピークのx座標 /cm
+y_peak = 0.0              # 勾配のピークのy座標 /cm
+dt = 0.01                 # 時間刻みの幅 /s
+periodic_time = 4.2       # 移動の1サイクルの継続時間 /s
+frequency = 0.033         # 方向の平均周波数 /Hz
+velocity = 0.022          # 線虫の速度 /cm/s
+simulation_time = 200.0   # シミュレート時間 /s
+time_constant = 0.1       # 時定数 /s
+
+[gauss_setting]
+c_0 = 1.0
+lambda = 1.61
+
+[analysis_setting]
+gene_number = 0           # 統計を取る遺伝子の番号（小さいほど優秀な個体）
+mode = 0                  # 濃度関数の選択（mode=0:liner, mode=1:gauss）
+analysis_loop = 100_000   # 統計を取る回数
+periodic_number = 3       # 何周期分のデータを計算に使うかと言う数
+periodic_number_drain = 4 # 先頭の何周期分のデータを捨てるかと言う数
+bin_range = 5             # ヒストグラムのビンの幅(bearing)
+delta = 0.001             # 濃度勾配の2点間距離
+bin_number = 50           # ヒストグラムのビンの数(濃度勾配)
+
+[analysis_use_function]
+# 0: analysis_klinotaxis_bearing_errbar_std_max_min
+# 1: analysis_klinotaxis_bearing_errbar_std
+# 2: analysis_klinotaxis_nomal_gradient_errbar_std_max_min
+mode = [0, 2]
