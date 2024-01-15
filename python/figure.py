@@ -86,3 +86,145 @@ def trajectory(gene, lines_number):
     plt.show()
 
     return
+
+
+def newron_output(gene):
+    N, M, theta, w_on, w_off, w, g, w_osc, w_nmj = oed.weight(gene)
+    alpha, x_peak, y_peak, dt, T, f, v, time, tau = oed.constant()
+    start = 150  # 開始時間
+
+    # ラベル
+    name = [
+        "ASEL",
+        "ASER",
+        "AIYL",
+        "AIYR",
+        "AIZL",
+        "AIZR",
+        "SMBDL",
+        "SMBDR",
+        "SMBVL",
+        "SMBVR",
+    ]
+    plot_index = [3, 4, 5, 6, 9, 7, 8, 10]
+
+    # 各種配列の初期化
+    t = np.arange(0, time, dt)
+    y = np.zeros((8, len(t)))
+
+    # figsize
+    plt.figure(figsize=(8, 8))
+
+    def ASE_line(ASE_mode):
+        for newron in np.arange(0, 1, 0.1):
+            ASEL = np.zeros(len(t))
+            ASER = np.zeros(len(t))
+
+            if ASE_mode == 0:
+                for i in range(int(2 / dt)):
+                    ASEL[int(4 / dt) + i] = newron * (-t[i] / 2 - np.floor(-t[i] / 2))
+            else:
+                for i in range(int(2 / dt)):
+                    ASER[int(4 / dt) + i] = newron * (-t[i] / 2 - np.floor(-t[i] / 2))
+
+            # オイラー法
+            for k in range(len(t) - 1):
+                # シナプス結合およびギャップ結合からの入力
+                synapse = np.dot(w.T, oed.sigmoid(y[:, k] + theta))
+                gap = np.array([np.dot(g[:, i], (y[:, k] - y[i, k])) for i in range(8)])
+
+                # 介在ニューロンおよび運動ニューロンの膜電位の更新
+                y[:, k + 1] = (
+                    y[:, k]
+                    + (
+                        -y[:, k]
+                        + synapse
+                        + gap
+                        + w_on * ASEL[k]
+                        + w_off * ASER[k]
+                        + w_osc * oed.y_osc(t[k], T)
+                    )
+                    / tau
+                    * dt
+                )
+
+            # カラーマップを使用して色を指定
+            if ASE_mode == 0:
+                color = plt.cm.Blues(newron)
+            else:
+                color = plt.cm.Reds(newron)
+
+            # プロットを指定した位置に表示
+            plt.subplot(5, 2, 1)
+            plt.plot(t[start:], ASEL[start:], color=color)
+            plt.subplot(5, 2, 2)
+            plt.plot(t[start:], ASER[start:], color=color)
+            for i in range(8):
+                plt.subplot(5, 2, plot_index[i])
+                plt.plot(t[start:], oed.sigmoid(y[i] + theta[i])[start:], color=color)
+
+        return
+
+    ASE_line(0)
+    ASE_line(1)
+
+    def black_line():
+        ASEL = np.zeros(len(t))
+        ASER = np.zeros(len(t))
+        # オイラー法
+        for k in range(len(t) - 1):
+            # シナプス結合およびギャップ結合からの入力
+            synapse = np.dot(w.T, oed.sigmoid(y[:, k] + theta))
+            gap = np.array([np.dot(g[:, i], (y[:, k] - y[i, k])) for i in range(8)])
+
+            # 介在ニューロンおよび運動ニューロンの膜電位の更新
+            y[:, k + 1] = (
+                y[:, k]
+                + (
+                    -y[:, k]
+                    + synapse
+                    + gap
+                    + w_on * ASEL[k]
+                    + w_off * ASER[k]
+                    + w_osc * oed.y_osc(t[k], T)
+                )
+                / tau
+                * dt
+            )
+
+        # プロットを指定した位置に表示
+        ax = plt.subplot(5, 2, 1)
+        plt.plot(t[start:], ASEL[start:], color="black")
+        plt.title(name[0])
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        ax.spines["bottom"].set_visible(False)
+        ax.spines["left"].set_visible(False)
+        ax = plt.subplot(5, 2, 2)
+        plt.plot(t[start:], ASER[start:], color="black")
+        plt.title(name[1])
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        ax.spines["bottom"].set_visible(False)
+        ax.spines["left"].set_visible(False)
+        for i in range(8):
+            ax = plt.subplot(5, 2, plot_index[i])
+            plt.plot(t[start:], oed.sigmoid(y[i] + theta[i])[start:], color="black")
+            plt.title(name[plot_index[i] - 1])
+            ax.set_xticks([])
+            ax.set_yticks([])
+            ax.spines["top"].set_visible(False)
+            ax.spines["right"].set_visible(False)
+            ax.spines["bottom"].set_visible(False)
+            ax.spines["left"].set_visible(False)
+        plt.show()
+
+        return
+
+    black_line()
+
+    return
