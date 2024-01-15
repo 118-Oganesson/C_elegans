@@ -679,6 +679,42 @@ pub mod genetic_algorithm {
         population
     }
 
+    pub fn mutation_biologically_correct(gene: &Ga, rate: f64, mean_std: (f64, f64)) -> Ga {
+        let mut rng: rand::rngs::ThreadRng = rand::thread_rng();
+        let normal: Normal<f64> =
+            Normal::new(mean_std.0, mean_std.1).expect("Failed to create normal distribution");
+
+        let mut mutated_gene: Gene = gene.gene.clone();
+
+        for (index, val) in mutated_gene.gene.iter_mut().enumerate() {
+            if index > 7 && index < 12 {
+                // 遺伝子番号8〜11(w_on, w_offの結合)
+                if rng.gen::<f64>() < rate {
+                    let delta: f64 = normal.sample(&mut rng);
+                    *val += delta;
+                    if *val > 0.0 {
+                        *val -= delta
+                    } else if *val < -1.0 {
+                        *val = -1.0
+                    }
+                }
+            } else if rng.gen::<f64>() < rate {
+                let delta: f64 = normal.sample(&mut rng);
+                *val += delta;
+                if *val > 1.0 {
+                    *val = 1.0;
+                } else if *val < -1.0 {
+                    *val = -1.0;
+                }
+            }
+        }
+
+        Ga {
+            value: 0.0,
+            gene: mutated_gene,
+        }
+    }
+
     pub fn genetic_algorithm_biologically_correct() {
         // GA_setting.toml ファイルを読み込む
         let toml_str: String =
@@ -747,7 +783,7 @@ pub mod genetic_algorithm {
                 let mut rng: rand::rngs::ThreadRng = rand::thread_rng();
                 for ind in clone.iter() {
                     if rng.gen::<f64>() < ga_setting.mut_pb {
-                        mutant.push(mutation(ind, 0.4, (0.0, 0.05)));
+                        mutant.push(mutation_biologically_correct(ind, 0.4, (0.0, 0.05)));
                     }
                 }
 

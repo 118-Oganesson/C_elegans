@@ -1,5 +1,5 @@
 [file_name]
-read_result_json = "./result/Result.json"
+read_result_json = "./result/Result_biologically_correct.json"
 bearing_vs_turning_bias_output = "./output/b_vs_t.txt"
 nomal_gradient_vs_turning_bias_output = "./output/n_vs_t.txt"
 translational_gradient_vs_turning_bias_output = "./output/t_vs_t.txt"

@@ -6,5 +6,5 @@ use c_elegans_22::genetic_algorithm::*;
 use c_elegans_22::simulation::*;
 
 fn main() {
-    analysis()
+    genetic_algorithm_biologically_correct();
 }
