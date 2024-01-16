@@ -55,23 +55,46 @@ def single_line_stacks(x, y):
     return lines
 
 
-def trajectory(gene, lines_number):
-    fig, ax = plt.subplots()
+def trajectory(gene, lines_number, out_file_path):
+    fig, ax = plt.subplots(figsize=(10, 7))
 
-    for angle in np.linspace(0, 2 * np.pi, lines_number + 1):
+    # トラジェクトリーの表示
+    for idx, angle in enumerate(np.linspace(0, 2 * np.pi, lines_number + 1)):
         r = oed.klinotaxis(gene, angle)
         alpha, x_peak, y_peak, dt, T, f, v, time, tau = oed.constant("setting")
 
         lines = single_line_stacks(r[0], r[1])
         color = np.linspace(0, time, len(lines))
-        lc = LineCollection(lines, cmap="jet", linewidth=1.5, array=color)
+        lc = LineCollection(lines, cmap="jet", linewidth=1, array=color)
         line = ax.add_collection(lc)
 
-    starting_point = [0, 0]
-    x_peak, y_peak = [x_peak, y_peak]
+        if idx == int(lines_number / 2 + 1):
+            lc_inset = LineCollection(lines, cmap="jet", linewidth=1, array=color)
+            ins_x_min = min(r[0])
+            ins_y_min = min(r[1])
 
-    ax.scatter(*starting_point, color="black", label="Starting Point")
-    ax.scatter(x_peak, y_peak, color="red", label="Gradient Peak")
+    # スタートとゴールの表示
+    starting_point = [0, 0]
+    peak = [x_peak, y_peak]
+
+    ax.scatter(*starting_point, s=15, color="black")
+    ax.scatter(*peak, s=15, color="black")
+
+    y_max = 1
+    ax.vlines(
+        starting_point[0],
+        starting_point[1],
+        y_max,
+        color="black",
+        linestyle="-",
+        linewidth=0.5,
+    )
+    ax.vlines(peak[0], peak[1], y_max, color="black", linestyle="-", linewidth=0.5)
+
+    ax.text(
+        starting_point[0], y_max + 0.1, "Starting Point", horizontalalignment="center"
+    )
+    ax.text(peak[0], y_max + 0.1, "Gradient Peak", horizontalalignment="center")
 
     # 軸メモリや枠を非表示にする
     ax.axis("off")
@@ -79,11 +102,39 @@ def trajectory(gene, lines_number):
     ax.set_aspect("equal")
 
     # 基準の大きさを表示
-    ax.text(4.5, -0.9, "1 cm")
+    ax.text(4.5, -0.95, "1 cm", horizontalalignment="center")
     ax.hlines(-1, 4, 5, color="black", linestyle="-", linewidth=1.5)
 
     # カラーバーの縦の大きさを変更
-    plt.colorbar(line, ax=ax, label="Time", shrink=0.5)
+    plt.colorbar(line, ax=ax, label="time /s", shrink=0.5)
+
+    # インセットプロット
+    axins = ax.inset_axes([0.0, -0.6, 0.6, 0.6])
+    axins.add_collection(lc_inset)
+
+    axins.set_xlim(ins_x_min - 0.1, ins_x_min + 1.4)
+    axins.set_ylim(ins_y_min - 0.1, ins_y_min + 0.9)
+
+    axins.set_aspect("equal")
+    axins.set_xticks([])
+    axins.set_yticks([])
+    for spine in axins.spines.values():
+        spine.set_edgecolor("gray")
+
+    axins.text(ins_x_min + 1.05, ins_y_min + 0.25, "1 mm", horizontalalignment="center")
+    axins.hlines(
+        ins_y_min + 0.2,
+        ins_x_min + 1,
+        ins_x_min + 1.1,
+        color="black",
+        linestyle="-",
+        linewidth=1.5,
+    )
+
+    ax.indicate_inset_zoom(axins)
+
+    # グラフの保存および表示
+    plt.savefig(out_file_path, dpi=300)
     plt.show()
 
     return

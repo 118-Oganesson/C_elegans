@@ -25,9 +25,9 @@ mode = 0                  # 濃度関数の選択（mode=0:liner, mode=1:gauss�
 analysis_loop = 100_000   # 統計を取る回数
 periodic_number = 3       # 何周期分のデータを計算に使うかと言う数
 periodic_number_drain = 4 # 先頭の何周期分のデータを捨てるかと言う数
-bin_range = 5             # ヒストグラムのビンの幅(bearing)
+bin_range = 10            # ヒストグラムのビンの幅(bearing)
 delta = 0.001             # 濃度勾配の2点間距離
-bin_number = 50           # ヒストグラムのビンの数(濃度勾配)
+bin_number = 25           # ヒストグラムのビンの数(濃度勾配)
 
 [analysis_use_function]
 # 0: analysis_klinotaxis_bearing_errbar_std_max_min(1:bearing, 2:turning_bias, 3:std, 4:max, 5:min)
