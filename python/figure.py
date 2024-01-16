@@ -5,7 +5,7 @@ import oed
 
 
 def trajectory_old(r):
-    alpha, x_peak, y_peak, dt, T, f, v, time, tau = oed.constant()
+    alpha, x_peak, y_peak, dt, T, f, v, time, tau = oed.constant("setting")
 
     fig1 = plt.figure(figsize=(12, 6))
     ax1 = fig1.add_subplot(111)
@@ -59,7 +59,7 @@ def trajectory(gene, lines_number):
 
     for angle in np.linspace(0, 2 * np.pi, lines_number + 1):
         r = oed.klinotaxis(gene, angle)
-        alpha, x_peak, y_peak, dt, T, f, v, time, tau = oed.constant()
+        alpha, x_peak, y_peak, dt, T, f, v, time, tau = oed.constant("setting")
 
         lines = single_line_stacks(r[0], r[1])
         color = np.linspace(0, time, len(lines))
@@ -90,7 +90,9 @@ def trajectory(gene, lines_number):
 
 def newron_output(gene):
     N, M, theta, w_on, w_off, w, g, w_osc, w_nmj = oed.weight(gene)
-    alpha, x_peak, y_peak, dt, T, f, v, time, tau = oed.constant()
+    alpha, x_peak, y_peak, dt, T, f, v, time, tau = oed.constant(
+        "setting_newron_output"
+    )
     start = 150  # 開始時間
 
     # ラベル

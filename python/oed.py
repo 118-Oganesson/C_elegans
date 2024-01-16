@@ -86,24 +86,24 @@ def weight(gene):
     return N, M, theta, w_on, w_off, w, g, w_osc, w_nmj
 
 
-def constant():
+def constant(key):
     settings = load.load_simulation_setting_toml("./setting.toml")
-    alpha = settings["setting"]["alpha"]
-    x_peak = settings["setting"]["x_peak"]
-    y_peak = settings["setting"]["y_peak"]
-    dt = settings["setting"]["dt"]
-    T = settings["setting"]["T"]
-    f = settings["setting"]["f"]
-    v = settings["setting"]["v"]
-    time = settings["setting"]["time"]
-    tau = settings["setting"]["tau"]
+    alpha = settings[key]["alpha"]
+    x_peak = settings[key]["x_peak"]
+    y_peak = settings[key]["y_peak"]
+    dt = settings[key]["dt"]
+    T = settings[key]["T"]
+    f = settings[key]["f"]
+    v = settings[key]["v"]
+    time = settings[key]["time"]
+    tau = settings[key]["tau"]
 
     return alpha, x_peak, y_peak, dt, T, f, v, time, tau
 
 
-def time_constant_step(gene):
+def time_constant_step(gene, key):
     N, M, theta, w_on, w_off, w, g, w_osc, w_nmj = weight(gene)
-    alpha, x_peak, y_peak, dt, T, f, v, time, tau = constant()
+    alpha, x_peak, y_peak, dt, T, f, v, time, tau = constant(key)
     # 時間に関する定数をステップ数に変換
     N_ = np.floor(N / dt).astype(int)
     M_ = np.floor(M / dt).astype(int)
@@ -118,10 +118,10 @@ def klinotaxis(gene, mu_0):
     N, M, theta, w_on, w_off, w, g, w_osc, w_nmj = weight(gene)
 
     # tomlファイルの読み込み
-    alpha, x_peak, y_peak, dt, T, f, v, time, tau = constant()
+    alpha, x_peak, y_peak, dt, T, f, v, time, tau = constant("setting")
 
     # 時間に関する定数をステップ数に変換
-    N_, M_, f_inv, T_ = time_constant_step(gene)
+    N_, M_, f_inv, T_ = time_constant_step(gene, "setting")
 
     # 各種配列の初期化
     t = np.arange(0, time, dt)
@@ -182,10 +182,10 @@ def klinotaxis_random(gene):
     N, M, theta, w_on, w_off, w, g, w_osc, w_nmj = weight(gene)
 
     # tomlファイルの読み込み
-    alpha, x_peak, y_peak, dt, T, f, v, time, tau = constant()
+    alpha, x_peak, y_peak, dt, T, f, v, time, tau = constant("setting")
 
     # 時間に関する定数をステップ数に変換
-    N_, M_, f_inv, T_ = time_constant_step(gene)
+    N_, M_, f_inv, T_ = time_constant_step(gene, "setting")
 
     # 各種配列の初期化
     t = np.arange(0, time, dt)
@@ -246,7 +246,7 @@ def klinotaxis_random(gene):
 
 
 def ci(r):
-    alpha, x_peak, y_peak, dt, T, f, v, time, tau = constant()
+    alpha, x_peak, y_peak, dt, T, f, v, time, tau = constant("setting")
     ci = (
         1
         - np.sum(np.sqrt((r[0, :] - x_peak) ** 2 + (r[1, :] - y_peak) ** 2))
