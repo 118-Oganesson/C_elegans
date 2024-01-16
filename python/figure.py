@@ -109,7 +109,7 @@ def trajectory(gene, lines_number, out_file_path):
     plt.colorbar(line, ax=ax, label="time /s", shrink=0.5)
 
     # インセットプロット
-    axins = ax.inset_axes([0.0, -0.6, 0.6, 0.6])
+    axins = ax.inset_axes([-0.1, -0.7, 0.8, 0.8])
     axins.add_collection(lc_inset)
 
     axins.set_xlim(ins_x_min - 0.1, ins_x_min + 1.4)
