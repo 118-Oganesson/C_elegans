@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.collections import LineCollection
 import oed
+import load
 
 
 def trajectory_old(r):
@@ -230,3 +231,90 @@ def newron_output(gene):
     black_line()
 
     return
+
+
+def Bearing_vs_Turing_bias(in_file_path, out_file_path):
+    data = load.load_output_txt(in_file_path)
+
+    plt.errorbar(
+        data[0],
+        data[1],
+        yerr=data[2],
+        capsize=5,
+        fmt="o",
+        markersize=3,
+        ecolor="black",
+        markeredgecolor="black",
+        color="black",
+    )
+
+    plt.xlabel("Bearing (degrees)")
+    plt.ylabel("Turning bias (degrees)")
+    plt.xlim(-185, 185)
+    plt.xticks([-180, -90, 0, 90, 180])
+    plt.yticks([-40, -20, 0, 20, 40])
+
+    plt.savefig(out_file_path, dpi=300)
+    plt.show()
+
+
+def Normal_gradient_vs_Turing_bias(in_file_path, out_file_path):
+    data = load.load_output_txt(in_file_path)
+
+    plt.errorbar(
+        data[0],
+        data[1],
+        yerr=data[2],
+        capsize=5,
+        fmt="o",
+        markersize=3,
+        ecolor="black",
+        markeredgecolor="black",
+        color="black",
+    )
+
+    plt.xlabel("Normal_gradient (mM/cm)")
+    plt.ylabel("Turning bias (degrees)")
+    plt.xticks([-0.01, -0.005, 0, 0.005, 0.01])
+    plt.yticks([-40, -20, 0, 20, 40])
+
+    plt.savefig(out_file_path, dpi=300)
+    plt.show()
+
+
+def Translational_gradient_vs_Turing_bias(in_file_path, out_file_path):
+    data = load.load_output_txt(in_file_path)
+
+    plt.scatter(data[0], data[1], s=6, c="black", marker="o", edgecolors="black")
+
+    plt.errorbar(
+        data[0],
+        data[3],
+        yerr=data[4],
+        capsize=5,
+        fmt="o",
+        markersize=3,
+        ecolor="red",
+        markeredgecolor="red",
+        color="red",
+    )
+
+    plt.errorbar(
+        data[0],
+        data[5],
+        yerr=data[6],
+        capsize=5,
+        fmt="o",
+        markersize=3,
+        ecolor="blue",
+        markeredgecolor="blue",
+        color="blue",
+    )
+
+    plt.xlabel("Normal_gradient (mM/cm)")
+    plt.ylabel("Turning bias (degrees)")
+    plt.xticks([-0.01, -0.005, 0, 0.005, 0.01])
+    plt.yticks([-40, -20, 0, 20, 40])
+
+    plt.savefig(out_file_path, dpi=300)
+    plt.show()
