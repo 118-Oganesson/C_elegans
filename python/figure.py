@@ -324,7 +324,7 @@ def Normal_gradient_vs_Turing_bias(in_file_path, out_file_path):
         color="black",
     )
 
-    plt.xlabel("Normal_gradient (mM/cm)")
+    plt.xlabel("Normal gradient (mM/cm)")
     plt.ylabel("Turning bias (degrees)")
     plt.xticks([-0.01, -0.005, 0, 0.005, 0.01])
     plt.yticks([-40, -20, 0, 20, 40])
@@ -362,7 +362,7 @@ def Translational_gradient_vs_Turing_bias(in_file_path, out_file_path):
         color="blue",
     )
 
-    plt.xlabel("Normal_gradient (mM/cm)")
+    plt.xlabel("Normal gradient (mM/cm)")
     plt.ylabel("Turning bias (degrees)")
     plt.xticks([-0.01, -0.005, 0, 0.005, 0.01])
     plt.yticks([-40, -20, 0, 20, 40])
