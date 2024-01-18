@@ -27,16 +27,17 @@ def y_osc(t, T):
     return np.sin(2 * np.pi * t / T)
 
 
+def gene_range_1(gene, min, max):
+    gene_ = (gene + 1) / 2 * (max - min) + min
+    return gene_
+
+
+def gene_range_2(gene, min, max):
+    gene_ = (gene + 1) / 2 * (max - min) + min
+    return gene_, gene_
+
+
 def weight(gene):
-    # 遺伝子の範囲を変更する
-    def gene_range_1(gene, min, max):
-        gene_ = (gene + 1) / 2 * (max - min) + min
-        return gene_
-
-    def gene_range_2(gene, min, max):
-        gene_ = (gene + 1) / 2 * (max - min) + min
-        return gene_, gene_
-
     # 遺伝子の引き渡し
     # 感覚ニューロン時間 0.1,4.2]
     N = gene_range_1(gene[0], 0.1, 4.2)

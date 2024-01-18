@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 import numpy as np
 from matplotlib.collections import LineCollection
 import oed
@@ -55,7 +56,7 @@ def single_line_stacks(x, y):
     return lines
 
 
-def trajectory(gene, lines_number, out_file_path):
+def trajectory(gene, lines_number, zoom_number, out_file_path):
     fig, ax = plt.subplots(figsize=(10, 7))
 
     # トラジェクトリーの表示
@@ -68,7 +69,7 @@ def trajectory(gene, lines_number, out_file_path):
         lc = LineCollection(lines, cmap="jet", linewidth=1, array=color)
         line = ax.add_collection(lc)
 
-        if idx == int(lines_number / 2 + 1):
+        if idx == zoom_number:
             lc_inset = LineCollection(lines, cmap="jet", linewidth=1, array=color)
             ins_x_min = min(r[0])
             ins_y_min = min(r[1])
@@ -140,7 +141,7 @@ def trajectory(gene, lines_number, out_file_path):
     return
 
 
-def newron_output(gene):
+def newron_output(gene, out_file_path):
     N, M, theta, w_on, w_off, w, g, w_osc, w_nmj = oed.weight(gene)
     alpha, x_peak, y_peak, dt, T, f, v, time, tau = oed.constant(
         "setting_newron_output"
@@ -281,6 +282,8 @@ def newron_output(gene):
 
     black_line()
 
+    plt.savefig(out_file_path, dpi=300)
+
     return
 
 
@@ -303,7 +306,7 @@ def Bearing_vs_Turing_bias(in_file_path, out_file_path):
     plt.ylabel("Turning bias (degrees)")
     plt.xlim(-185, 185)
     plt.xticks([-180, -90, 0, 90, 180])
-    plt.yticks([-40, -20, 0, 20, 40])
+    # plt.yticks([-40, -20, 0, 20, 40])
 
     plt.savefig(out_file_path, dpi=300)
     plt.show()
@@ -327,7 +330,7 @@ def Normal_gradient_vs_Turing_bias(in_file_path, out_file_path):
     plt.xlabel("Normal gradient (mM/cm)")
     plt.ylabel("Turning bias (degrees)")
     plt.xticks([-0.01, -0.005, 0, 0.005, 0.01])
-    plt.yticks([-40, -20, 0, 20, 40])
+    # plt.yticks([-40, -20, 0, 20, 40])
 
     plt.savefig(out_file_path, dpi=300)
     plt.show()
@@ -365,7 +368,301 @@ def Translational_gradient_vs_Turing_bias(in_file_path, out_file_path):
     plt.xlabel("Normal gradient (mM/cm)")
     plt.ylabel("Turning bias (degrees)")
     plt.xticks([-0.01, -0.005, 0, 0.005, 0.01])
-    plt.yticks([-40, -20, 0, 20, 40])
+    # plt.yticks([-40, -20, 0, 20, 40])
 
     plt.savefig(out_file_path, dpi=300)
     plt.show()
+
+
+def connectome(gene, out_file_path):
+    fig, ax = plt.subplots(figsize=(5, 5))
+    # 結合の設定
+    headwidth = 9
+    headlength = 10
+    width = 4
+    gap_width = 6
+    inv_root_2 = 1 / np.sqrt(2)
+
+    positive_color = "red"
+    negative_color = "blue"
+    gap_color = "green"
+
+    chemosensory_newrons = [(3, 9), (6, 9)]
+    inter_newrons = [(3, 6), (6, 6), (3, 3), (6, 3)]
+    motor_newrons = [(0, 0), (3, 0), (6, 0), (9, 0)]
+
+    chemosensory_names = ["ASEL", "ASER"]
+    inter_names = ["AIYL", "AIYR", "AIZL", "AIZR"]
+    motor_names = ["SMBVL", "SMBDL", "SMBDR", "SMBVR"]
+
+    # 円の作成
+    # 感覚ニューロン
+    for i, center in enumerate(chemosensory_newrons):
+        circle = patches.Circle(
+            xy=center, radius=1, facecolor="white", edgecolor="black"
+        )
+        ax.add_patch(circle)
+        ax.text(
+            center[0],
+            center[1],
+            chemosensory_names[i],
+            color="black",
+            horizontalalignment="center",
+            verticalalignment="center",
+        )
+
+    # 介在ニューロン
+    for i, center in enumerate(inter_newrons):
+        circle = patches.Circle(
+            xy=center, radius=1, facecolor="lightgray", edgecolor="black"
+        )
+        ax.add_patch(circle)
+        ax.text(
+            center[0],
+            center[1],
+            inter_names[i],
+            color="black",
+            horizontalalignment="center",
+            verticalalignment="center",
+        )
+
+    # 運動ニューロン
+    for i, center in enumerate(motor_newrons):
+        circle = patches.Circle(
+            xy=center, radius=1, facecolor="black", edgecolor="black"
+        )
+        ax.add_patch(circle)
+        ax.text(
+            center[0],
+            center[1],
+            motor_names[i],
+            color="white",
+            horizontalalignment="center",
+            verticalalignment="center",
+        )
+
+    # 結合の作成
+
+    # 感覚ニューロン
+    chemosensory_annotations = [
+        {
+            "start": (chemosensory_newrons[0][0], chemosensory_newrons[0][1] - 1),
+            "end": (chemosensory_newrons[0][0], chemosensory_newrons[0][1] - 2),
+            "weight": gene[8],
+        },
+        {
+            "start": (chemosensory_newrons[1][0], chemosensory_newrons[1][1] - 1),
+            "end": (chemosensory_newrons[1][0], chemosensory_newrons[1][1] - 2),
+            "weight": gene[11],
+        },
+        {
+            "start": (
+                chemosensory_newrons[0][0] + inv_root_2,
+                chemosensory_newrons[0][1] - inv_root_2,
+            ),
+            "end": (inter_newrons[1][0] - inv_root_2, inter_newrons[1][1] + inv_root_2),
+            "weight": gene[9],
+        },
+        {
+            "start": (
+                chemosensory_newrons[1][0] - inv_root_2,
+                chemosensory_newrons[1][1] - inv_root_2,
+            ),
+            "end": (inter_newrons[0][0] + inv_root_2, inter_newrons[0][1] + inv_root_2),
+            "weight": gene[10],
+        },
+    ]
+
+    for annotation in chemosensory_annotations:
+        if annotation["weight"] > 0:
+            color = positive_color
+        else:
+            color = negative_color
+        ax.annotate(
+            "",
+            xy=annotation["end"],
+            xytext=annotation["start"],
+            arrowprops=dict(
+                shrink=0,
+                width=np.abs(annotation["weight"]) * width,
+                headwidth=headwidth,
+                headlength=headlength,
+                connectionstyle="arc3",
+                facecolor=color,
+                edgecolor=color,
+            ),
+        )
+
+    # 介在ニューロン
+    inter_annotations = [
+        {
+            "start": (inter_newrons[0][0], inter_newrons[0][1] - 1),
+            "end": (inter_newrons[0][0], inter_newrons[0][1] - 2),
+            "weight": gene[12],
+        },
+        {
+            "start": (inter_newrons[1][0], inter_newrons[1][1] - 1),
+            "end": (inter_newrons[1][0], inter_newrons[1][1] - 2),
+            "weight": gene[13],
+        },
+        {
+            "start": (inter_newrons[2][0], inter_newrons[2][1] - 1),
+            "end": (inter_newrons[2][0], inter_newrons[2][1] - 2),
+            "weight": gene[14],
+        },
+        {
+            "start": (inter_newrons[3][0], inter_newrons[3][1] - 1),
+            "end": (inter_newrons[3][0], inter_newrons[3][1] - 2),
+            "weight": gene[15],
+        },
+        {
+            "start": (
+                inter_newrons[2][0] - inv_root_2,
+                inter_newrons[2][1] - inv_root_2,
+            ),
+            "end": (motor_newrons[0][0] + inv_root_2, motor_newrons[0][1] + inv_root_2),
+            "weight": gene[14],
+        },
+        {
+            "start": (
+                inter_newrons[3][0] + inv_root_2,
+                inter_newrons[3][1] - inv_root_2,
+            ),
+            "end": (motor_newrons[3][0] - inv_root_2, motor_newrons[3][1] + inv_root_2),
+            "weight": gene[15],
+        },
+    ]
+
+    for annotation in inter_annotations:
+        if annotation["weight"] > 0:
+            color = positive_color
+        else:
+            color = negative_color
+        ax.annotate(
+            "",
+            xy=annotation["end"],
+            xytext=annotation["start"],
+            arrowprops=dict(
+                shrink=0,
+                width=np.abs(annotation["weight"]) * width,
+                headwidth=headwidth,
+                headlength=headlength,
+                connectionstyle="arc3",
+                facecolor=color,
+                edgecolor=color,
+            ),
+        )
+
+    # 運動ニューロン
+    def angle_between_vectors(vector_a, vector_b):
+        dot_product = np.dot(vector_a, vector_b)
+        norm_a = np.linalg.norm(vector_a)
+        norm_b = np.linalg.norm(vector_b)
+
+        cos_theta = dot_product / (norm_a * norm_b)
+        radians = np.arccos(cos_theta)
+        degrees = np.degrees(radians)
+
+        return degrees
+
+    base = np.array([1 / 2, 0])
+    start = np.array(
+        [(np.sqrt(2) + np.sqrt(30)) / 16, (-1 / 8 + np.sqrt(15) / 8) / np.sqrt(2)]
+    )
+    end = np.array(
+        [(np.sqrt(2) - np.sqrt(30)) / 16, (-1 / 8 - np.sqrt(15) / 8) / np.sqrt(2)]
+    )
+
+    start_angle = angle_between_vectors(base, start)
+    end_angle = 360 - angle_between_vectors(base, end)
+
+    motor_curves = [
+        {
+            "center": (
+                motor_newrons[0][0] - inv_root_2,
+                motor_newrons[0][1] + inv_root_2,
+            ),
+            "weight": gene[16],
+            "start_angle": start_angle,
+            "end_angle": end_angle,
+        },
+        {
+            "center": (
+                motor_newrons[1][0] - inv_root_2,
+                motor_newrons[1][1] + inv_root_2,
+            ),
+            "weight": gene[16],
+            "start_angle": start_angle,
+            "end_angle": end_angle,
+        },
+        {
+            "center": (
+                motor_newrons[2][0] + inv_root_2,
+                motor_newrons[2][1] + inv_root_2,
+            ),
+            "weight": gene[17],
+            "start_angle": -(end_angle - 180),
+            "end_angle": 180 - start_angle,
+        },
+        {
+            "center": (
+                motor_newrons[3][0] + inv_root_2,
+                motor_newrons[3][1] + inv_root_2,
+            ),
+            "weight": gene[17],
+            "start_angle": -(end_angle - 180),
+            "end_angle": 180 - start_angle,
+        },
+    ]
+
+    for curve in motor_curves:
+        if curve["weight"] > 0:
+            color = positive_color
+        else:
+            color = negative_color
+        self = patches.Arc(
+            xy=curve["center"],
+            width=1,
+            height=1,
+            theta1=curve["start_angle"],
+            theta2=curve["end_angle"],
+            facecolor=color,
+            edgecolor=color,
+            linewidth=np.abs(curve["weight"]) * width,
+        )
+        ax.add_patch(self)
+
+    # ギャップ結合の作成
+    inter_lines = [
+        {
+            "base": inter_newrons[0][1],
+            "start": inter_newrons[0][0] + 1,
+            "end": inter_newrons[1][0] - 1,
+            "weight": oed.gene_range_1(gene[18], 0, gap_width),
+        },
+        {
+            "base": inter_newrons[2][1],
+            "start": inter_newrons[2][0] + 1,
+            "end": inter_newrons[3][0] - 1,
+            "weight": oed.gene_range_1(gene[19], 0, gap_width),
+        },
+    ]
+
+    for line in inter_lines:
+        ax.hlines(
+            line["base"],
+            line["start"],
+            line["end"],
+            color=gap_color,
+            linestyle="-",
+            linewidth=line["weight"],
+        )
+
+    ax.axis("off")
+    ax.autoscale()
+    ax.set_aspect("equal")
+
+    plt.savefig(out_file_path, dpi=300)
+    plt.show()
+
+    return
