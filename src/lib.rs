@@ -658,7 +658,7 @@ pub mod genetic_algorithm {
             .expect("ファイルへの書き込みに失敗しました");
     }
 
-    pub fn population_new_biologically_correct(gen_size: usize, pop_size: usize) -> Vec<Ga> {
+    pub fn population_new_aiy_negative(gen_size: usize, pop_size: usize) -> Vec<Ga> {
         let mut rng: rand::rngs::ThreadRng = thread_rng();
         let population: Vec<Ga> = (0..pop_size)
             .map(|_| {
@@ -679,7 +679,7 @@ pub mod genetic_algorithm {
         population
     }
 
-    pub fn mutation_biologically_correct(gene: &Ga, rate: f64, mean_std: (f64, f64)) -> Ga {
+    pub fn mutation_aiy_negative(gene: &Ga, rate: f64, mean_std: (f64, f64)) -> Ga {
         let mut rng: rand::rngs::ThreadRng = rand::thread_rng();
         let normal: Normal<f64> =
             Normal::new(mean_std.0, mean_std.1).expect("Failed to create normal distribution");
@@ -741,7 +741,7 @@ pub mod genetic_algorithm {
         for count in 0..ga_setting.ga_count {
             //初期集団を生成
             let mut population: Vec<Ga> =
-                population_new_biologically_correct(ga_setting.gen_size, ga_setting.pop_size);
+                population_new_aiy_negative(ga_setting.gen_size, ga_setting.pop_size);
 
             //個体の評価(version:0は通常、version:1は波打つかチェックしている)
             let mut evaluate: Vec<Ga> =
@@ -783,7 +783,7 @@ pub mod genetic_algorithm {
                 let mut rng: rand::rngs::ThreadRng = rand::thread_rng();
                 for ind in clone.iter() {
                     if rng.gen::<f64>() < ga_setting.mut_pb {
-                        mutant.push(mutation_biologically_correct(ind, 0.4, (0.0, 0.05)));
+                        mutant.push(mutation_aiy_negative(ind, 0.4, (0.0, 0.05)));
                     }
                 }
 
@@ -793,7 +793,7 @@ pub mod genetic_algorithm {
                     offspring.extend(select);
                     offspring.extend(mate);
                     offspring.extend(mutant);
-                    let population: Vec<Ga> = population_new_biologically_correct(
+                    let population: Vec<Ga> = population_new_aiy_negative(
                         ga_setting.gen_size,
                         ga_setting.pop_size - offspring.len(),
                     );
@@ -808,7 +808,7 @@ pub mod genetic_algorithm {
                     let mut offspring: Vec<Ga> = Vec::new();
                     offspring.extend(mate);
                     offspring.extend(mutant);
-                    let population: Vec<Ga> = population_new_biologically_correct(
+                    let population: Vec<Ga> = population_new_aiy_negative(
                         ga_setting.gen_size,
                         ga_setting.pop_size - ga_setting.sel_top - offspring.len(),
                     );
