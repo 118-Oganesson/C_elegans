@@ -311,6 +311,8 @@ def Bearing_vs_Turing_bias(in_file_path, out_file_path):
     plt.savefig(out_file_path, dpi=300)
     plt.show()
 
+    return
+
 
 def Normal_gradient_vs_Turing_bias(in_file_path, out_file_path):
     data = load.load_output_txt(in_file_path)
@@ -334,6 +336,8 @@ def Normal_gradient_vs_Turing_bias(in_file_path, out_file_path):
 
     plt.savefig(out_file_path, dpi=300)
     plt.show()
+
+    return
 
 
 def Translational_gradient_vs_Turing_bias(in_file_path, out_file_path):
@@ -373,6 +377,44 @@ def Translational_gradient_vs_Turing_bias(in_file_path, out_file_path):
     plt.savefig(out_file_path, dpi=300)
     plt.show()
 
+    return
+
+
+def angle_between_vectors(vector_a, vector_b):
+    dot_product = np.dot(vector_a, vector_b)
+    norm_a = np.linalg.norm(vector_a)
+    norm_b = np.linalg.norm(vector_b)
+
+    cos_theta = dot_product / (norm_a * norm_b)
+    radians = np.arccos(cos_theta)
+    degrees = np.degrees(radians)
+
+    return degrees
+
+
+def normal_line(point_1, point_2, width):
+    point_1 = np.array(point_1)
+    point_2 = np.array(point_2)
+    vector = point_2 - point_1
+    magnitude_vector = np.sqrt(vector[0] ** 2 + vector[1] ** 2)
+    normal = np.array([-vector[1], vector[0]]) / magnitude_vector
+    normal_rev = -normal
+
+    point_3 = point_2 + normal * width / 2
+    point_4 = point_2 + normal_rev * width / 2
+
+    return [point_3[0], point_4[0]], [point_3[1], point_4[1]]
+
+
+def annotation_head_short(point_1, point_2, order):
+    point_1 = np.array(point_1)
+    point_2 = np.array(point_2)
+    vector = point_1 - point_2
+    magnitude_vector = np.sqrt(vector[0] ** 2 + vector[1] ** 2)
+    short_vector = vector / magnitude_vector * 10**order
+
+    return point_2 - short_vector
+
 
 def connectome(gene, out_file_path):
     fig, ax = plt.subplots(figsize=(5, 5))
@@ -383,8 +425,8 @@ def connectome(gene, out_file_path):
     gap_width = 6
     inv_root_2 = 1 / np.sqrt(2)
 
-    positive_color = "red"
-    negative_color = "blue"
+    positive_color = "blue"
+    negative_color = "red"
     gap_color = "green"
 
     chemosensory_newrons = [(3, 9), (6, 9)]
@@ -476,13 +518,7 @@ def connectome(gene, out_file_path):
     for annotation in chemosensory_annotations:
         if annotation["weight"] > 0:
             color = positive_color
-        else:
-            color = negative_color
-        ax.annotate(
-            "",
-            xy=annotation["end"],
-            xytext=annotation["start"],
-            arrowprops=dict(
+            arrow = dict(
                 shrink=0,
                 width=np.abs(annotation["weight"]) * width,
                 headwidth=headwidth,
@@ -490,7 +526,17 @@ def connectome(gene, out_file_path):
                 connectionstyle="arc3",
                 facecolor=color,
                 edgecolor=color,
-            ),
+            )
+        else:
+            color = negative_color
+            arrow = dict(
+                arrowstyle="|-|, widthA=0, widthB=0.4",
+                linewidth=np.abs(annotation["weight"]) * width,
+                facecolor=color,
+                edgecolor=color,
+            )
+        ax.annotate(
+            "", xy=annotation["end"], xytext=annotation["start"], arrowprops=arrow
         )
 
     # 介在ニューロン
@@ -536,13 +582,7 @@ def connectome(gene, out_file_path):
     for annotation in inter_annotations:
         if annotation["weight"] > 0:
             color = positive_color
-        else:
-            color = negative_color
-        ax.annotate(
-            "",
-            xy=annotation["end"],
-            xytext=annotation["start"],
-            arrowprops=dict(
+            arrow = dict(
                 shrink=0,
                 width=np.abs(annotation["weight"]) * width,
                 headwidth=headwidth,
@@ -550,21 +590,20 @@ def connectome(gene, out_file_path):
                 connectionstyle="arc3",
                 facecolor=color,
                 edgecolor=color,
-            ),
+            )
+        else:
+            color = negative_color
+            arrow = dict(
+                arrowstyle="|-|, widthA=0, widthB=0.4",
+                linewidth=np.abs(annotation["weight"]) * width,
+                facecolor=color,
+                edgecolor=color,
+            )
+        ax.annotate(
+            "", xy=annotation["end"], xytext=annotation["start"], arrowprops=arrow
         )
 
     # 運動ニューロン
-    def angle_between_vectors(vector_a, vector_b):
-        dot_product = np.dot(vector_a, vector_b)
-        norm_a = np.linalg.norm(vector_a)
-        norm_b = np.linalg.norm(vector_b)
-
-        cos_theta = dot_product / (norm_a * norm_b)
-        radians = np.arccos(cos_theta)
-        degrees = np.degrees(radians)
-
-        return degrees
-
     base = np.array([1 / 2, 0])
     start = np.array(
         [(np.sqrt(2) + np.sqrt(30)) / 16, (-1 / 8 + np.sqrt(15) / 8) / np.sqrt(2)]
@@ -585,6 +624,11 @@ def connectome(gene, out_file_path):
             "weight": gene[16],
             "start_angle": start_angle,
             "end_angle": end_angle,
+            "point_1": (motor_newrons[0][0], motor_newrons[0][1]),
+            "point_2": (
+                motor_newrons[0][0] - inv_root_2 + end[0],
+                motor_newrons[0][1] + inv_root_2 + end[1],
+            ),
         },
         {
             "center": (
@@ -594,6 +638,11 @@ def connectome(gene, out_file_path):
             "weight": gene[16],
             "start_angle": start_angle,
             "end_angle": end_angle,
+            "point_1": (motor_newrons[1][0], motor_newrons[1][1]),
+            "point_2": (
+                motor_newrons[1][0] - inv_root_2 + end[0],
+                motor_newrons[1][1] + inv_root_2 + end[1],
+            ),
         },
         {
             "center": (
@@ -603,6 +652,11 @@ def connectome(gene, out_file_path):
             "weight": gene[17],
             "start_angle": -(end_angle - 180),
             "end_angle": 180 - start_angle,
+            "point_1": (motor_newrons[2][0], motor_newrons[2][1]),
+            "point_2": (
+                motor_newrons[2][0] - inv_root_2 + 2 * inv_root_2 - end[0],
+                motor_newrons[2][1] + inv_root_2 + end[1],
+            ),
         },
         {
             "center": (
@@ -612,14 +666,43 @@ def connectome(gene, out_file_path):
             "weight": gene[17],
             "start_angle": -(end_angle - 180),
             "end_angle": 180 - start_angle,
+            "point_1": (motor_newrons[3][0], motor_newrons[3][1]),
+            "point_2": (
+                motor_newrons[3][0] - inv_root_2 + 2 * inv_root_2 - end[0],
+                motor_newrons[3][1] + inv_root_2 + end[1],
+            ),
         },
     ]
 
     for curve in motor_curves:
         if curve["weight"] > 0:
             color = positive_color
+            ax.annotate(
+                "",
+                xy=curve["point_2"],
+                xytext=annotation_head_short(curve["point_1"], curve["point_2"], -5),
+                arrowprops=dict(
+                    headwidth=headwidth,
+                    headlength=headlength,
+                    connectionstyle="arc3",
+                    facecolor=color,
+                    edgecolor=color,
+                ),
+            )
         else:
             color = negative_color
+            point = normal_line(
+                curve["point_1"],
+                curve["point_2"],
+                0.3,
+            )
+            ax.plot(
+                point[0],
+                point[1],
+                color=color,
+                linewidth=np.abs(curve["weight"]) * width,
+            )
+
         self = patches.Arc(
             xy=curve["center"],
             width=1,
