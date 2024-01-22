@@ -276,13 +276,13 @@ def newron_output(gene, out_file_path):
             ax.spines["right"].set_visible(False)
             ax.spines["bottom"].set_visible(False)
             ax.spines["left"].set_visible(False)
-        plt.show()
 
         return
 
     black_line()
 
     plt.savefig(out_file_path, dpi=300)
+    plt.show()
 
     return
 
