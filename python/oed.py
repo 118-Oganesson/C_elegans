@@ -246,6 +246,70 @@ def klinotaxis_random(gene):
     return r
 
 
+def klinotaxis_membrane_potential(gene, mu_0):
+    # 遺伝子の値をスケーリング
+    N, M, theta, w_on, w_off, w, g, w_osc, w_nmj = weight(gene)
+
+    # tomlファイルの読み込み
+    alpha, x_peak, y_peak, dt, T, f, v, time, tau = constant("setting")
+
+    # 時間に関する定数をステップ数に変換
+    N_, M_, f_inv, T_ = time_constant_step(gene, "setting")
+
+    # 各種配列の初期化
+    t = np.arange(0, time, dt)
+    c_t = np.zeros(N_ + M_)
+    c_t[0 : N_ + M_] = c(alpha, 0, 0, x_peak, y_peak)
+    y = np.zeros((8, len(t)))
+    y[4:8, 0] = np.random.rand(4)  # 運動ニューロンの活性を0～1の範囲でランダム化
+    phi = np.zeros(len(t))
+    mu = np.zeros(len(t))
+    mu[0] = mu_0
+    r = np.zeros((2, len(t)))
+
+    # オイラー法
+    for k in range(len(t) - 1):
+        # シナプス結合およびギャップ結合からの入力
+        synapse = np.dot(w.T, sigmoid(y[:, k] + theta))
+        gap = np.array([np.dot(g[:, i], (y[:, k] - y[i, k])) for i in range(8)])
+
+        # 濃度の更新
+        c_t = np.delete(c_t, 0)
+        c_t = np.append(c_t, c(alpha, r[0, k], r[1, k], x_peak, y_peak))
+
+        # 介在ニューロンおよび運動ニューロンの膜電位の更新
+        y[:, k + 1] = (
+            y[:, k]
+            + (
+                -y[:, k]
+                + synapse
+                + gap
+                + w_on * y_on(c_t, N_, M_, N, M)
+                + w_off * y_off(c_t, N_, M_, N, M)
+                + w_osc * y_osc(t[k], T)
+            )
+            / tau
+            * dt
+        )
+
+        # 方向の更新
+        phi[k] = w_nmj * (
+            sigmoid(y[5, k] + theta[5])
+            + sigmoid(y[6, k] + theta[6])
+            - sigmoid(y[4, k] + theta[4])
+            - sigmoid(y[7, k] + theta[7])
+        )
+        mu[k + 1] = mu[k] + phi[k] * dt
+
+        # 位置の更新
+        r[0, k + 1], r[1, k + 1] = (
+            r[0, k] + v * np.cos(mu[k]) * dt,
+            r[1, k] + v * np.sin(mu[k]) * dt,
+        )
+
+    return r, y
+
+
 def ci(r):
     alpha, x_peak, y_peak, dt, T, f, v, time, tau = constant("setting")
     ci = (

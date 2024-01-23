@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
 from matplotlib.collections import LineCollection
+from matplotlib.colors import Normalize
 import oed
 import load
 
@@ -59,8 +60,10 @@ def single_line_stacks(x, y):
 def trajectory(gene, lines_number, zoom_number, out_file_path):
     fig, ax = plt.subplots(figsize=(10, 7))
 
+    step = 2 * np.pi / lines_number
+
     # トラジェクトリーの表示
-    for idx, angle in enumerate(np.linspace(0, 2 * np.pi, lines_number + 1)):
+    for idx, angle in enumerate(np.arange(0, 2 * np.pi, step)):
         r = oed.klinotaxis(gene, angle)
         alpha, x_peak, y_peak, dt, T, f, v, time, tau = oed.constant("setting")
 
@@ -745,6 +748,117 @@ def connectome(gene, out_file_path):
     ax.autoscale()
     ax.set_aspect("equal")
 
+    plt.savefig(out_file_path, dpi=300)
+    plt.show()
+
+    return
+
+
+def trajectory_membrane_potential(gene, lines_number, out_file_path):
+    fig, ax = plt.subplots(2, 1, figsize=(10, 7))
+
+    top = 0
+    bottom = 1
+    cmap = "seismic"
+
+    step = 2 * np.pi / lines_number
+
+    all_lines = []
+    all_aiy = []
+    all_aiz = []
+
+    # トラジェクトリーの解析
+    for angle in np.arange(0, 2 * np.pi, step):
+        r, y = oed.klinotaxis_membrane_potential(gene, angle)
+        alpha, x_peak, y_peak, dt, T, f, v, time, tau = oed.constant("setting")
+
+        lines = single_line_stacks(r[0], r[1])
+        aiy = (y[0] + y[1]) / 2
+        aiz = (y[2] + y[3]) / 2
+
+        all_lines.append(lines)
+        all_aiy.append(aiy)
+        all_aiz.append(aiz)
+
+    flat_aiy = np.array(all_aiy).flatten()
+    flat_aiz = np.array(all_aiz).flatten()
+
+    mean_aiy = np.mean(flat_aiy)
+    std_dev_aiy = np.std(flat_aiy)
+    mean_aiz = np.mean(flat_aiz)
+    std_dev_aiz = np.std(flat_aiz)
+
+    # AIYの表示
+    for i, lines in enumerate(all_lines):
+        lc = LineCollection(
+            lines,
+            cmap=cmap,
+            norm=Normalize(vmin=mean_aiy - std_dev_aiy, vmax=mean_aiy + std_dev_aiy),
+            linewidth=1,
+            array=all_aiy[i],
+        )
+        line_aiy = ax[top].add_collection(lc)
+
+    # AIZの表示
+    for i, lines in enumerate(all_lines):
+        lc = LineCollection(
+            lines,
+            cmap=cmap,
+            norm=Normalize(vmin=mean_aiz - std_dev_aiz, vmax=mean_aiz + std_dev_aiz),
+            linewidth=1,
+            array=all_aiz[i],
+        )
+        line_aiz = ax[bottom].add_collection(lc)
+
+    # スタートとゴールの表示
+    starting_point = [0, 0]
+    peak = [x_peak, y_peak]
+
+    for i in [top, bottom]:
+        ax[i].scatter(*starting_point, s=15, color="black")
+        ax[i].scatter(*peak, s=15, color="black")
+
+        y_max = 1
+        ax[i].vlines(
+            starting_point[0],
+            starting_point[1],
+            y_max,
+            color="black",
+            linestyle="-",
+            linewidth=0.5,
+        )
+        ax[i].vlines(
+            peak[0], peak[1], y_max, color="black", linestyle="-", linewidth=0.5
+        )
+
+        ax[i].text(
+            starting_point[0],
+            y_max + 0.1,
+            "Starting Point",
+            horizontalalignment="center",
+        )
+        ax[i].text(peak[0], y_max + 0.1, "Gradient Peak", horizontalalignment="center")
+
+    # 軸メモリや枠を非表示にする
+    for i in [top, bottom]:
+        ax[i].axis("off")
+        ax[i].autoscale()
+        ax[i].set_aspect("equal")
+
+    # 基準の大きさを表示
+    for i in [top, bottom]:
+        ax[i].text(4.5, -0.95, "1 cm", horizontalalignment="center")
+        ax[i].hlines(-1, 4, 5, color="black", linestyle="-", linewidth=1.5)
+
+    # カラーバー表示
+    plt.colorbar(line_aiy, ax=ax[top], label="AIY membrane potential", shrink=0.5)
+    plt.colorbar(line_aiz, ax=ax[bottom], label="AIZ membrane potential", shrink=0.5)
+
+    # タイトルの表示
+    ax[top].set_title("AIY")
+    ax[bottom].set_title("AIZ")
+
+    # グラフの保存および表示
     plt.savefig(out_file_path, dpi=300)
     plt.show()
 
