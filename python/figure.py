@@ -406,14 +406,14 @@ def normal_line(point_1, point_2, width):
     return [point_3[0], point_4[0]], [point_3[1], point_4[1]]
 
 
-def annotation_head_short(point_1, point_2, order):
+def annotation_head_short(point_1, point_2, head_length):
     point_1 = np.array(point_1)
     point_2 = np.array(point_2)
     vector = point_1 - point_2
     magnitude_vector = np.sqrt(vector[0] ** 2 + vector[1] ** 2)
-    short_vector = vector / magnitude_vector * 10**order
+    short_vector = vector / magnitude_vector * head_length
 
-    return point_2 - short_vector
+    return point_2 + short_vector
 
 
 def connectome(gene, out_file_path):
@@ -679,8 +679,8 @@ def connectome(gene, out_file_path):
             color = positive_color
             ax.annotate(
                 "",
-                xy=curve["point_2"],
-                xytext=annotation_head_short(curve["point_1"], curve["point_2"], -5),
+                xy=annotation_head_short(curve["point_1"], curve["point_2"], 0.25),
+                xytext=curve["point_2"],
                 arrowprops=dict(
                     headwidth=headwidth,
                     headlength=headlength,
