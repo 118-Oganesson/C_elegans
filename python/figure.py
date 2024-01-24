@@ -1,6 +1,6 @@
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-import numpy as np
 from matplotlib.collections import LineCollection
 from matplotlib.colors import Normalize
 import oed
