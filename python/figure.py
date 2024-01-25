@@ -1,4 +1,5 @@
 import numpy as np
+import multiprocessing
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.collections import LineCollection
@@ -57,16 +58,32 @@ def single_line_stacks(x, y):
     return lines
 
 
+def calculate_trajectory(gene_angle_list):
+    gene, angle = gene_angle_list
+    return oed.klinotaxis(gene, angle)
+
+
 def trajectory(gene, lines_number, zoom_number, out_file_path):
+    alpha, x_peak, y_peak, dt, T, f, v, time, tau = oed.constant("setting")
     fig, ax = plt.subplots(figsize=(10, 7))
 
-    step = 2 * np.pi / lines_number
+    # マルチスレッドの使用プロセス数
+    if lines_number < multiprocessing.cpu_count():
+        process = lines_number
+    else:
+        process = multiprocessing.cpu_count()
+
+    # マルチスレッドで処理する遺伝子と角度のリスト
+    gene_angle_list = [
+        [gene, angle] for angle in np.arange(0, 2 * np.pi, 2 * np.pi / lines_number)
+    ]
+
+    # マルチスレッド処理
+    with multiprocessing.Pool(process) as pool:
+        results = pool.map(calculate_trajectory, gene_angle_list)
 
     # トラジェクトリーの表示
-    for idx, angle in enumerate(np.arange(0, 2 * np.pi, step)):
-        r = oed.klinotaxis(gene, angle)
-        alpha, x_peak, y_peak, dt, T, f, v, time, tau = oed.constant("setting")
-
+    for idx, r in enumerate(results):
         lines = single_line_stacks(r[0], r[1])
         color = np.linspace(0, time, len(lines))
         lc = LineCollection(lines, cmap="jet", linewidth=1, array=color)
@@ -754,31 +771,43 @@ def connectome(gene, out_file_path):
     return
 
 
+def calculate_trajectory_membrane_potential(gene_angle_list):
+    gene, angle = gene_angle_list
+
+    r, y = oed.klinotaxis_membrane_potential(gene, angle)
+
+    lines = single_line_stacks(r[0], r[1])
+    aiy = (y[0] + y[1]) / 2
+    aiz = (y[2] + y[3]) / 2
+
+    return lines, aiy, aiz
+
+
 def trajectory_membrane_potential(gene, lines_number, out_file_path):
+    alpha, x_peak, y_peak, dt, T, f, v, time, tau = oed.constant("setting")
     fig, ax = plt.subplots(2, 1, figsize=(10, 7))
 
     top = 0
     bottom = 1
     cmap = "seismic"
 
-    step = 2 * np.pi / lines_number
+    # マルチスレッドの使用プロセス数
+    if lines_number < multiprocessing.cpu_count():
+        process = lines_number
+    else:
+        process = multiprocessing.cpu_count()
 
-    all_lines = []
-    all_aiy = []
-    all_aiz = []
+    # マルチスレッドで処理する遺伝子と角度のリスト
+    gene_angle_list = [
+        [gene, angle] for angle in np.arange(0, 2 * np.pi, 2 * np.pi / lines_number)
+    ]
 
-    # トラジェクトリーの解析
-    for angle in np.arange(0, 2 * np.pi, step):
-        r, y = oed.klinotaxis_membrane_potential(gene, angle)
-        alpha, x_peak, y_peak, dt, T, f, v, time, tau = oed.constant("setting")
+    # マルチスレッド処理
+    with multiprocessing.Pool(process) as pool:
+        results = pool.map(calculate_trajectory_membrane_potential, gene_angle_list)
 
-        lines = single_line_stacks(r[0], r[1])
-        aiy = (y[0] + y[1]) / 2
-        aiz = (y[2] + y[3]) / 2
-
-        all_lines.append(lines)
-        all_aiy.append(aiy)
-        all_aiz.append(aiz)
+    # 結果を分解して格納
+    all_lines, all_aiy, all_aiz = zip(*results)
 
     flat_aiy = np.array(all_aiy).flatten()
     flat_aiz = np.array(all_aiz).flatten()
