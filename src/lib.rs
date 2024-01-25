@@ -943,6 +943,13 @@ pub mod analysis {
         pub mode: Vec<i32>,
     }
 
+    #[derive(Clone, Debug, Serialize, Deserialize)]
+    pub struct Analysisusegene {
+        pub mode: usize,
+        pub gene_numbers: Vec<usize>,
+        pub gene_number_range: Vec<usize>,
+    }
+
     pub fn read_result() -> Vec<Ga> {
         // klinotaxis_analysis.toml ファイルを読み込む
         let toml_str: String =
@@ -2096,7 +2103,11 @@ pub mod analysis {
         let toml_str: String =
             std::fs::read_to_string("klinotaxis_analysis.toml").expect("Failed to read file");
         let value: Value = toml::from_str(&toml_str).expect("Failed to parse TOML");
-        let file_name: Filename = value["file_name"]
+        let file_name_base: Filename = value["file_name"]
+            .clone()
+            .try_into()
+            .expect("Failed to parse Setting");
+        let mut file_name: Filename = value["file_name"]
             .clone()
             .try_into()
             .expect("Failed to parse Setting");
@@ -2108,7 +2119,11 @@ pub mod analysis {
             .clone()
             .try_into()
             .expect("Failed to parse Setting");
-        let analysis_setting: Analysissetting = value["analysis_setting"]
+        let mut analysis_setting: Analysissetting = value["analysis_setting"]
+            .clone()
+            .try_into()
+            .expect("Failed to parse Setting");
+        let analysis_use_gene: Analysisusegene = value["analysis_use_gene"]
             .clone()
             .try_into()
             .expect("Failed to parse Setting");
@@ -2117,43 +2132,72 @@ pub mod analysis {
             .try_into()
             .expect("Failed to parse Setting");
 
-        for i in analysis_use_function.mode {
-            if i == 0 {
-                // turning bias vs bearing
-                analysis_klinotaxis_bearing_errbar_std_max_min(
-                    &result_ga,
-                    &file_name,
-                    &liner_setting,
-                    &gauss_setting,
-                    &analysis_setting,
-                );
-            } else if i == 1 {
-                // turning bias vs bearing
-                analysis_klinotaxis_bearing_errbar_std(
-                    &result_ga,
-                    &file_name,
-                    &liner_setting,
-                    &gauss_setting,
-                    &analysis_setting,
-                );
-            } else if i == 2 {
-                // turning bias vs nomal gradient
-                analysis_klinotaxis_nomal_gradient_errbar_std_max_min(
-                    &result_ga,
-                    &file_name,
-                    &liner_setting,
-                    &gauss_setting,
-                    &analysis_setting,
-                );
-            } else if i == 3 {
-                // turning bias vs translational gradient
-                analysis_klinotaxis_translational_gradient_errbar_std_positive_negative(
-                    &result_ga,
-                    &file_name,
-                    &liner_setting,
-                    &gauss_setting,
-                    &analysis_setting,
-                );
+        // 分析する遺伝子の指定
+        let mut gene_range: Vec<usize> = Vec::new();
+        if analysis_use_gene.mode == 0 {
+            gene_range = analysis_use_gene.gene_numbers
+        } else if analysis_use_gene.mode == 1 {
+            gene_range = (analysis_use_gene.gene_number_range[0]
+                ..analysis_use_gene.gene_number_range[1] + 1)
+                .collect()
+        }
+
+        // 各遺伝子での分析のループ
+        for i in gene_range {
+            // 遺伝子番号の変更
+            analysis_setting.gene_number = i;
+            // ファイルネームの変更
+            file_name.bearing_vs_turning_bias_output = format!(
+                "{}_{}{}",
+                file_name_base.bearing_vs_turning_bias_output, i, ".txt"
+            );
+            file_name.nomal_gradient_vs_turning_bias_output = format!(
+                "{}_{}{}",
+                file_name_base.nomal_gradient_vs_turning_bias_output, i, ".txt"
+            );
+            file_name.translational_gradient_vs_turning_bias_output = format!(
+                "{}_{}{}",
+                file_name_base.translational_gradient_vs_turning_bias_output, i, ".txt"
+            );
+            // 分析方法のループ
+            for j in &analysis_use_function.mode {
+                if *j == 0 {
+                    // turning bias vs bearing
+                    analysis_klinotaxis_bearing_errbar_std_max_min(
+                        &result_ga,
+                        &file_name,
+                        &liner_setting,
+                        &gauss_setting,
+                        &analysis_setting,
+                    );
+                } else if *j == 1 {
+                    // turning bias vs bearing
+                    analysis_klinotaxis_bearing_errbar_std(
+                        &result_ga,
+                        &file_name,
+                        &liner_setting,
+                        &gauss_setting,
+                        &analysis_setting,
+                    );
+                } else if *j == 2 {
+                    // turning bias vs nomal gradient
+                    analysis_klinotaxis_nomal_gradient_errbar_std_max_min(
+                        &result_ga,
+                        &file_name,
+                        &liner_setting,
+                        &gauss_setting,
+                        &analysis_setting,
+                    );
+                } else if *j == 3 {
+                    // turning bias vs translational gradient
+                    analysis_klinotaxis_translational_gradient_errbar_std_positive_negative(
+                        &result_ga,
+                        &file_name,
+                        &liner_setting,
+                        &gauss_setting,
+                        &analysis_setting,
+                    );
+                }
             }
         }
     }
