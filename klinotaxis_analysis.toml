@@ -1,8 +1,8 @@
 [file_name]
 read_result_json = "./result/Result.json"
-bearing_vs_turning_bias_output = "./output/b_vs_t"                # .txtは不要
-nomal_gradient_vs_turning_bias_output = "./output/n_vs_t"         # .txtは不要
-translational_gradient_vs_turning_bias_output = "./output/t_vs_t" # .txtは不要
+bearing_vs_turning_bias_output = "./output/bearing_vs_turning_bias/b_vs_t"                               # .txtは不要
+nomal_gradient_vs_turning_bias_output = "./output/nomal_gradient_vs_turning_bias/n_vs_t"                 # .txtは不要
+translational_gradient_vs_turning_bias_output = "./output/translational_gradient_vs_turning_bias/t_vs_t" # .txtは不要
 
 [liner_setting]
 alpha = [-0.01001, -0.01] # 濃度勾配の範囲
