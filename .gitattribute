@@ -1,0 +1,4 @@
+figure/* linguist-vendored
+output/* linguist-vendored
+result/* linguist-vendored
+*.ipynb linguist-language=Python
