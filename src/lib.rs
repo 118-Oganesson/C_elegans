@@ -537,6 +537,9 @@ pub mod genetic_algorithm {
             .try_into()
             .expect("Failed to parse Testing");
 
+        // 途中結果の書き出し用のtxtファイルの作成
+        let mut file = File::create("Result.txt").unwrap();
+
         //遺伝的アルゴリズムの結果
         let mut result: Vec<Ga> = Vec::new();
 
@@ -633,6 +636,15 @@ pub mod genetic_algorithm {
 
             //最も優秀な個体を結果に格納
             result.push(evaluate[0].clone());
+
+            // 途中結果の書き出し
+            let result_gajson: Gajson = Gajson {
+                value: evaluate[0].value,
+                gene: evaluate[0].gene.gene.clone(),
+            };
+            let json_string = serde_json::to_string_pretty(&result_gajson).unwrap();
+            file.write_all(json_string.as_bytes()).unwrap();
+            writeln!(file, ",").unwrap();
         }
 
         //正しいCIを用いて結果を評価する
@@ -792,6 +804,9 @@ pub mod genetic_algorithm {
             .try_into()
             .expect("Failed to parse Testing");
 
+        // 途中結果の書き出し用のtxtファイルの作成
+        let mut file = File::create("Result.txt").unwrap();
+
         //遺伝的アルゴリズムの結果
         let mut result: Vec<Ga> = Vec::new();
 
@@ -891,6 +906,15 @@ pub mod genetic_algorithm {
 
             //最も優秀な個体を結果に格納
             result.push(evaluate[0].clone());
+
+            // 途中結果の書き出し
+            let result_gajson: Gajson = Gajson {
+                value: evaluate[0].value,
+                gene: evaluate[0].gene.gene.clone(),
+            };
+            let json_string = serde_json::to_string_pretty(&result_gajson).unwrap();
+            file.write_all(json_string.as_bytes()).unwrap();
+            writeln!(file, ",").unwrap();
         }
 
         //正しいCIを用いて結果を評価する
@@ -908,11 +932,11 @@ pub mod genetic_algorithm {
             .collect();
 
         //JSON文字列にシリアライズ
-        let result_json = serde_json::to_string_pretty(&result_evaluate_gajson).unwrap();
+        let result_json: String = serde_json::to_string_pretty(&result_evaluate_gajson).unwrap();
 
         //JSON文字列をファイルに書き込む
-        let mut file: File = File::create("../result/Result_aiz_negative.json")
-            .expect("ファイルの作成に失敗しました");
+        let mut file: File =
+            File::create("Result_aiz_negative.json").expect("ファイルの作成に失敗しました");
         file.write_all(result_json.as_bytes())
             .expect("ファイルへの書き込みに失敗しました");
     }

@@ -2,3 +2,4 @@ target/
 .vscode/
 firedbg/
 python/venv/
+Result.txt
