@@ -20,7 +20,7 @@ c_0 = 1.0
 lambda = 1.61
 
 [analysis_setting]
-gene_number = 0           # 統計を取る遺伝子の番号（小さいほど優秀な個体）
+gene_number = 0           # 統計を取る遺伝子の番号（小さいほど優秀な個体）ただし、入力しても意味はない
 mode = 0                  # 濃度関数の選択（mode=0:liner, mode=1:gauss）
 analysis_loop = 100_000   # 統計を取る回数
 periodic_number = 3       # 何周期分のデータを計算に使うかと言う数

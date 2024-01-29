@@ -1,4 +1,4 @@
 figure/* linguist-vendored
 output/* linguist-vendored
 result/* linguist-vendored
-**/*.ipynb linguist-vendored
+python/main.ipynb linguist-vendored
