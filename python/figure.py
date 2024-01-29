@@ -892,3 +892,95 @@ def trajectory_membrane_potential(gene, lines_number, out_file_path):
     plt.show()
 
     return
+
+
+def all_figure_create(
+    result_json_file_path, limit_or_unlimit, gene_range, use_function
+):
+    for function in use_function:
+        if function == "connectome":
+            # connectome
+            result = load.load_result_json(result_json_file_path)
+            file_path_base = "../figure/" + limit_or_unlimit + "/connectome/connectome_"
+            for i in range(gene_range):
+                gene = result[i]["gene"]
+                file_path = "{}{}".format(file_path_base, i)
+                connectome(gene, file_path)
+
+        elif function == "newron_output":
+            # newron_output
+            result = load.load_result_json(result_json_file_path)
+            file_path_base = "../figure/" + limit_or_unlimit + "/newron/newron_"
+            for i in range(gene_range):
+                gene = result[i]["gene"]
+                file_path = "{}{}".format(file_path_base, i)
+                newron_output(gene, file_path)
+
+        elif function == "Bearing_vs_Turing_bias":
+            # bearing_vs_turning_bias
+            in_file_path_base = (
+                "../output/" + limit_or_unlimit + "/bearing_vs_turning_bias/b_vs_t_"
+            )
+            out_file_path_base = (
+                "../figure/" + limit_or_unlimit + "/bearing_vs_turning_bias/b_vs_t_"
+            )
+            for i in range(gene_range):
+                in_file_path = "{}{}.txt".format(in_file_path_base, i)
+                out_file_path = "{}{}".format(out_file_path_base, i)
+                Bearing_vs_Turing_bias(in_file_path, out_file_path)
+
+        elif function == "Normal_gradient_vs_Turing_bias":
+            # nomal_gradient_vs_turning_bias
+            in_file_path_base = (
+                "../output/"
+                + limit_or_unlimit
+                + "/nomal_gradient_vs_turning_bias/n_vs_t_"
+            )
+            out_file_path_base = (
+                "../figure/"
+                + limit_or_unlimit
+                + "/nomal_gradient_vs_turning_bias/n_vs_t_"
+            )
+            for i in range(gene_range):
+                in_file_path = "{}{}.txt".format(in_file_path_base, i)
+                out_file_path = "{}{}".format(out_file_path_base, i)
+                Normal_gradient_vs_Turing_bias(in_file_path, out_file_path)
+
+        elif function == "Translational_gradient_vs_Turing_bias":
+            # translational_gradient_vs_turning_bias
+            in_file_path_base = (
+                "../output/"
+                + limit_or_unlimit
+                + "/translational_gradient_vs_turning_bias/t_vs_t_"
+            )
+            out_file_path_base = (
+                "../figure/"
+                + limit_or_unlimit
+                + "/translational_gradient_vs_turning_bias/t_vs_t_"
+            )
+            for i in range(gene_range):
+                in_file_path = "{}{}.txt".format(in_file_path_base, i)
+                out_file_path = "{}{}".format(out_file_path_base, i)
+                Translational_gradient_vs_Turing_bias(in_file_path, out_file_path)
+
+        elif function == "trajectory":
+            # trajectory
+            file_path_base = "../figure/" + limit_or_unlimit + "/trajectory/trajectory_"
+            result = load.load_result_json(result_json_file_path)
+            for i in range(gene_range):
+                gene = result[i]["gene"]
+                file_path = "{}{}".format(file_path_base, i)
+                trajectory(gene, 10, 7, file_path)
+
+        elif function == "trajectory_membrane_potential":
+            # trajectory_membrane_potential
+            file_path_base = (
+                "../figure/"
+                + limit_or_unlimit
+                + "/trajectory_membrane_potential/trajectory_membrane_potential_"
+            )
+            result = load.load_result_json(result_json_file_path)
+            for i in range(gene_range):
+                gene = result[i]["gene"]
+                file_path = "{}{}".format(file_path_base, i)
+                trajectory_membrane_potential(gene, 10, file_path)
