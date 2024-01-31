@@ -2,4 +2,5 @@ target/
 .vscode/
 firedbg/
 python/venv/
+python/c_elegans/
 Result.txt

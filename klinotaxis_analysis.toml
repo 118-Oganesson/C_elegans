@@ -1,5 +1,5 @@
 [file_name]
-read_result_json = "./result/Result.json"
+read_result_json = "./result/Result_aiz_negative.json"
 bearing_vs_turning_bias_output = "./output/limited/bearing_vs_turning_bias/b_vs_t"                               # .txtは不要
 nomal_gradient_vs_turning_bias_output = "./output/limited/nomal_gradient_vs_turning_bias/n_vs_t"                 # .txtは不要
 translational_gradient_vs_turning_bias_output = "./output/limited/translational_gradient_vs_turning_bias/t_vs_t" # .txtは不要
@@ -30,9 +30,9 @@ delta = 0.001             # 濃度勾配の2点間距離
 bin_number = 25           # ヒストグラムのビンの数(濃度勾配)
 
 [analysis_use_gene]
-mode = 1                   # 分析する遺伝子の番号範囲の指定方法の選択(mode=0:gene_numbers, mode=1:gene_number_range)
-gene_numbers = [0, 1, 2]   # []内の番号を指定
-gene_number_range = [0, 9] # [start, end]のstartからendまでの番号を指定(startおよびendも含む)
+mode = 1                    # 分析する遺伝子の番号範囲の指定方法の選択(mode=0:gene_numbers, mode=1:gene_number_range)
+gene_numbers = [0, 1, 2]    # []内の番号を指定
+gene_number_range = [0, 29] # [start, end]のstartからendまでの番号を指定(startおよびendも含む)
 
 [analysis_use_function]
 # 0: analysis_klinotaxis_bearing_errbar_std_max_min(1:bearing, 2:turning_bias, 3:std, 4:max, 5:min)
