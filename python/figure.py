@@ -894,7 +894,7 @@ def trajectory_membrane_potential(gene, lines_number, out_file_path):
     return
 
 
-def all_figure_create(
+def all_figure_create_top(
     result_json_file_path, limit_or_unlimit, gene_range, use_function
 ):
     for function in use_function:

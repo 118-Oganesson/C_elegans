@@ -1,8 +1,8 @@
 [file_name]
-read_result_json = "./result/Result_aiz_negative.json"
-bearing_vs_turning_bias_output = "./output/limited/bearing_vs_turning_bias/b_vs_t"                               # .txtは不要
-nomal_gradient_vs_turning_bias_output = "./output/limited/nomal_gradient_vs_turning_bias/n_vs_t"                 # .txtは不要
-translational_gradient_vs_turning_bias_output = "./output/limited/translational_gradient_vs_turning_bias/t_vs_t" # .txtは不要
+read_result_json = "./analysis/Result_aiz_negative_3/Result_aiz_negative_3.json"
+bearing_vs_turning_bias_output = "./output/limited/bearing_vs_turning_bias/b_vs_t"                                      # .txtは不要
+nomal_gradient_vs_turning_bias_output = "./analysis/Result_aiz_negative_3/output/nomal_gradient_vs_turning_bias/n_vs_t" # .txtは不要
+translational_gradient_vs_turning_bias_output = "./output/limited/translational_gradient_vs_turning_bias/t_vs_t"        # .txtは不要
 
 [liner_setting]
 alpha = [-0.01001, -0.01] # 濃度勾配の範囲
@@ -32,11 +32,11 @@ bin_number = 25           # ヒストグラムのビンの数(濃度勾配)
 [analysis_use_gene]
 mode = 1                    # 分析する遺伝子の番号範囲の指定方法の選択(mode=0:gene_numbers, mode=1:gene_number_range)
 gene_numbers = [0, 1, 2]    # []内の番号を指定
-gene_number_range = [0, 29] # [start, end]のstartからendまでの番号を指定(startおよびendも含む)
+gene_number_range = [0, 10] # [start, end]のstartからendまでの番号を指定(startおよびendも含む)
 
 [analysis_use_function]
 # 0: analysis_klinotaxis_bearing_errbar_std_max_min(1:bearing, 2:turning_bias, 3:std, 4:max, 5:min)
 # 1: analysis_klinotaxis_bearing_errbar_std (1:bearing, 2:turning_bias, 3:std) おすめはしない
 # 2: analysis_klinotaxis_nomal_gradient_errbar_std_max_min (1:nomal_gradient, 2:turning_bias, 3:std, 4:max, 5:min)
 # 3: analysis_klinotaxis_translational_gradient_errbar_std_positive_negative (1:translational_gradient, 2:turning_bias, 3:std, 4:t_b_posi, 5:std_posi, 6:t_b_nega, 7:std_nega)
-mode = [0, 2, 3]
+mode = [2]
