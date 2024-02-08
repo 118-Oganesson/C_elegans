@@ -9,7 +9,9 @@ import load
 
 
 def trajectory_old(r):
-    alpha, x_peak, y_peak, dt, T, f, v, time, tau = oed.constant("setting")
+    alpha, x_peak, y_peak, dt, T, f, v, time, tau, c_0, lambda_ = oed.constant(
+        "setting"
+    )
 
     fig1 = plt.figure(figsize=(12, 6))
     ax1 = fig1.add_subplot(111)
@@ -64,7 +66,9 @@ def calculate_trajectory(gene_angle_list):
 
 
 def trajectory(gene, lines_number, zoom_number, out_file_path):
-    alpha, x_peak, y_peak, dt, T, f, v, time, tau = oed.constant("setting")
+    alpha, x_peak, y_peak, dt, T, f, v, time, tau, c_0, lambda_ = oed.constant(
+        "setting"
+    )
     fig, ax = plt.subplots(figsize=(10, 7))
 
     # マルチスレッドの使用プロセス数
@@ -163,7 +167,7 @@ def trajectory(gene, lines_number, zoom_number, out_file_path):
 
 def newron_output(gene, out_file_path):
     N, M, theta, w_on, w_off, w, g, w_osc, w_nmj = oed.weight(gene)
-    alpha, x_peak, y_peak, dt, T, f, v, time, tau = oed.constant(
+    alpha, x_peak, y_peak, dt, T, f, v, time, tau, c_0, lambda_ = oed.constant(
         "setting_newron_output"
     )
     start = 150  # 開始時間
@@ -772,9 +776,9 @@ def connectome(gene, out_file_path):
 
 
 def calculate_trajectory_membrane_potential(gene_angle_list):
-    gene, angle = gene_angle_list
+    gene, angle, c_mode = gene_angle_list
 
-    r, y = oed.klinotaxis_membrane_potential(gene, angle)
+    r, y = oed.klinotaxis_membrane_potential(gene, angle, c_mode)
 
     lines = single_line_stacks(r[0], r[1])
     aiy = (y[0] + y[1]) / 2
@@ -783,8 +787,10 @@ def calculate_trajectory_membrane_potential(gene_angle_list):
     return lines, aiy, aiz
 
 
-def trajectory_membrane_potential(gene, lines_number, out_file_path):
-    alpha, x_peak, y_peak, dt, T, f, v, time, tau = oed.constant("setting")
+def trajectory_membrane_potential(gene, c_mode, lines_number, out_file_path):
+    alpha, x_peak, y_peak, dt, T, f, v, time, tau, c_0, lambda_ = oed.constant(
+        "setting"
+    )
     fig, ax = plt.subplots(2, 1, figsize=(10, 7))
 
     top = 0
@@ -798,13 +804,16 @@ def trajectory_membrane_potential(gene, lines_number, out_file_path):
         process = multiprocessing.cpu_count()
 
     # マルチスレッドで処理する遺伝子と角度のリスト
-    gene_angle_list = [
-        [gene, angle] for angle in np.arange(0, 2 * np.pi, 2 * np.pi / lines_number)
+    gene_angle_c_mode_list = [
+        [gene, angle, c_mode]
+        for angle in np.arange(0, 2 * np.pi, 2 * np.pi / lines_number)
     ]
 
     # マルチスレッド処理
     with multiprocessing.Pool(process) as pool:
-        results = pool.map(calculate_trajectory_membrane_potential, gene_angle_list)
+        results = pool.map(
+            calculate_trajectory_membrane_potential, gene_angle_c_mode_list
+        )
 
     # 結果を分解して格納
     all_lines, all_aiy, all_aiz = zip(*results)
@@ -892,95 +901,3 @@ def trajectory_membrane_potential(gene, lines_number, out_file_path):
     plt.show()
 
     return
-
-
-def all_figure_create_top(
-    result_json_file_path, limit_or_unlimit, gene_range, use_function
-):
-    for function in use_function:
-        if function == "connectome":
-            # connectome
-            result = load.load_result_json(result_json_file_path)
-            file_path_base = "../figure/" + limit_or_unlimit + "/connectome/connectome_"
-            for i in range(gene_range):
-                gene = result[i]["gene"]
-                file_path = "{}{}".format(file_path_base, i)
-                connectome(gene, file_path)
-
-        elif function == "newron_output":
-            # newron_output
-            result = load.load_result_json(result_json_file_path)
-            file_path_base = "../figure/" + limit_or_unlimit + "/newron/newron_"
-            for i in range(gene_range):
-                gene = result[i]["gene"]
-                file_path = "{}{}".format(file_path_base, i)
-                newron_output(gene, file_path)
-
-        elif function == "Bearing_vs_Turing_bias":
-            # bearing_vs_turning_bias
-            in_file_path_base = (
-                "../output/" + limit_or_unlimit + "/bearing_vs_turning_bias/b_vs_t_"
-            )
-            out_file_path_base = (
-                "../figure/" + limit_or_unlimit + "/bearing_vs_turning_bias/b_vs_t_"
-            )
-            for i in range(gene_range):
-                in_file_path = "{}{}.txt".format(in_file_path_base, i)
-                out_file_path = "{}{}".format(out_file_path_base, i)
-                Bearing_vs_Turing_bias(in_file_path, out_file_path)
-
-        elif function == "Normal_gradient_vs_Turing_bias":
-            # nomal_gradient_vs_turning_bias
-            in_file_path_base = (
-                "../output/"
-                + limit_or_unlimit
-                + "/nomal_gradient_vs_turning_bias/n_vs_t_"
-            )
-            out_file_path_base = (
-                "../figure/"
-                + limit_or_unlimit
-                + "/nomal_gradient_vs_turning_bias/n_vs_t_"
-            )
-            for i in range(gene_range):
-                in_file_path = "{}{}.txt".format(in_file_path_base, i)
-                out_file_path = "{}{}".format(out_file_path_base, i)
-                Normal_gradient_vs_Turing_bias(in_file_path, out_file_path)
-
-        elif function == "Translational_gradient_vs_Turing_bias":
-            # translational_gradient_vs_turning_bias
-            in_file_path_base = (
-                "../output/"
-                + limit_or_unlimit
-                + "/translational_gradient_vs_turning_bias/t_vs_t_"
-            )
-            out_file_path_base = (
-                "../figure/"
-                + limit_or_unlimit
-                + "/translational_gradient_vs_turning_bias/t_vs_t_"
-            )
-            for i in range(gene_range):
-                in_file_path = "{}{}.txt".format(in_file_path_base, i)
-                out_file_path = "{}{}".format(out_file_path_base, i)
-                Translational_gradient_vs_Turing_bias(in_file_path, out_file_path)
-
-        elif function == "trajectory":
-            # trajectory
-            file_path_base = "../figure/" + limit_or_unlimit + "/trajectory/trajectory_"
-            result = load.load_result_json(result_json_file_path)
-            for i in range(gene_range):
-                gene = result[i]["gene"]
-                file_path = "{}{}".format(file_path_base, i)
-                trajectory(gene, 10, 7, file_path)
-
-        elif function == "trajectory_membrane_potential":
-            # trajectory_membrane_potential
-            file_path_base = (
-                "../figure/"
-                + limit_or_unlimit
-                + "/trajectory_membrane_potential/trajectory_membrane_potential_"
-            )
-            result = load.load_result_json(result_json_file_path)
-            for i in range(gene_range):
-                gene = result[i]["gene"]
-                file_path = "{}{}".format(file_path_base, i)
-                trajectory_membrane_potential(gene, 10, file_path)
