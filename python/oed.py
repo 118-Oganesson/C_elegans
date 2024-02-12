@@ -11,6 +11,13 @@ def c_gauss(c_0, lambda_, x_, y_, x_peak, y_peak):
     return c_0 * np.exp(-((x_ - x_peak) ** 2 + (y_ - y_peak) ** 2) / (2 * lambda_**2))
 
 
+def c_two_gauss(c_0, lambda_, x_, y_, x_peak, y_peak):
+    return c_0 * (
+        np.exp(-((x_ - x_peak) ** 2 + (y_ - y_peak) ** 2) / (2 * lambda_**2))
+        - np.exp(-((x_ + x_peak) ** 2 + (y_ + y_peak) ** 2) / (2 * lambda_**2))
+    )
+
+
 def y_on(c_t, N_, M_, N, M):
     y_ = np.sum(c_t[M_ : M_ + N_]) / N - np.sum(c_t[0:M_]) / M
     y_ = np.clip(y_, 0, None)
@@ -120,7 +127,7 @@ def time_constant_step(gene, key):
     return N_, M_, f_inv, T_
 
 
-def klinotaxis(gene, mu_0):
+def klinotaxis(gene, mu_0, c_mode):
     # 遺伝子の値をスケーリング
     N, M, theta, w_on, w_off, w, g, w_osc, w_nmj = weight(gene)
 
@@ -133,7 +140,12 @@ def klinotaxis(gene, mu_0):
     # 各種配列の初期化
     t = np.arange(0, time, dt)
     c_t = np.zeros(N_ + M_)
-    c_t[0 : N_ + M_] = c(alpha, 0, 0, x_peak, y_peak)
+    if c_mode == 0:
+        c_t[0 : N_ + M_] = c(alpha, 0, 0, x_peak, y_peak)
+    elif c_mode == 1:
+        c_t[0 : N_ + M_] = c_gauss(c_0, lambda_, 0, 0, x_peak, y_peak)
+    elif c_mode == 2:
+        c_t[0 : N_ + M_] = c_two_gauss(c_0, lambda_, 0, 0, x_peak, y_peak)
     y = np.zeros((8, len(t)))
     y[4:8, 0] = np.random.rand(4)  # 運動ニューロンの活性を0～1の範囲でランダム化
     phi = np.zeros(len(t))
@@ -149,7 +161,13 @@ def klinotaxis(gene, mu_0):
 
         # 濃度の更新
         c_t = np.delete(c_t, 0)
-        c_t = np.append(c_t, c(alpha, r[0, k], r[1, k], x_peak, y_peak))
+        if c_mode == 0:
+            c = c(alpha, r[0, k], r[1, k], x_peak, y_peak)
+        elif c_mode == 1:
+            c = c_gauss(c_0, lambda_, r[0, k], r[1, k], x_peak, y_peak)
+        elif c_mode == 2:
+            c = c_two_gauss(c_0, lambda_, r[0, k], r[1, k], x_peak, y_peak)
+        c_t = np.append(c_t, c)
 
         # 介在ニューロンおよび運動ニューロンの膜電位の更新
         y[:, k + 1] = (
@@ -269,6 +287,8 @@ def klinotaxis_membrane_potential(gene, mu_0, c_mode):
         c_t[0 : N_ + M_] = c(alpha, 0, 0, x_peak, y_peak)
     elif c_mode == 1:
         c_t[0 : N_ + M_] = c_gauss(c_0, lambda_, 0, 0, x_peak, y_peak)
+    elif c_mode == 2:
+        c_t[0 : N_ + M_] = c_two_gauss(c_0, lambda_, 0, 0, x_peak, y_peak)
     y = np.zeros((8, len(t)))
     y[4:8, 0] = np.random.rand(4)  # 運動ニューロンの活性を0～1の範囲でランダム化
     phi = np.zeros(len(t))
@@ -284,7 +304,13 @@ def klinotaxis_membrane_potential(gene, mu_0, c_mode):
 
         # 濃度の更新
         c_t = np.delete(c_t, 0)
-        c_t = np.append(c_t, c_gauss(c_0, lambda_, r[0, k], r[1, k], x_peak, y_peak))
+        if c_mode == 0:
+            c = c(alpha, r[0, k], r[1, k], x_peak, y_peak)
+        elif c_mode == 1:
+            c = c_gauss(c_0, lambda_, r[0, k], r[1, k], x_peak, y_peak)
+        elif c_mode == 2:
+            c = c_two_gauss(c_0, lambda_, r[0, k], r[1, k], x_peak, y_peak)
+        c_t = np.append(c_t, c)
 
         # 介在ニューロンおよび運動ニューロンの膜電位の更新
         y[:, k + 1] = (

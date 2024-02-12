@@ -61,11 +61,11 @@ def single_line_stacks(x, y):
 
 
 def calculate_trajectory(gene_angle_list):
-    gene, angle = gene_angle_list
-    return oed.klinotaxis(gene, angle)
+    gene, angle, c_mode = gene_angle_list
+    return oed.klinotaxis(gene, angle, c_mode)
 
 
-def trajectory(gene, lines_number, zoom_number, out_file_path):
+def trajectory(gene, c_mode, lines_number, zoom_number, out_file_path):
     alpha, x_peak, y_peak, dt, T, f, v, time, tau, c_0, lambda_ = oed.constant(
         "setting"
     )
@@ -79,7 +79,8 @@ def trajectory(gene, lines_number, zoom_number, out_file_path):
 
     # マルチスレッドで処理する遺伝子と角度のリスト
     gene_angle_list = [
-        [gene, angle] for angle in np.arange(0, 2 * np.pi, 2 * np.pi / lines_number)
+        [gene, angle, c_mode]
+        for angle in np.arange(0, 2 * np.pi, 2 * np.pi / lines_number)
     ]
 
     # マルチスレッド処理
@@ -327,7 +328,7 @@ def Bearing_vs_Turing_bias(in_file_path, out_file_path):
     )
 
     plt.xlabel("Bearing (degrees)")
-    plt.ylabel("Turning bias (degrees)")
+    plt.ylabel("Turning bias (degrees/cm)")
     plt.xlim(-185, 185)
     plt.xticks([-180, -90, 0, 90, 180])
     # plt.yticks([-40, -20, 0, 20, 40])
@@ -354,8 +355,8 @@ def Normal_gradient_vs_Turing_bias(in_file_path, out_file_path):
     )
 
     plt.xlabel("Normal gradient (mM/cm)")
-    plt.ylabel("Turning bias (degrees)")
-    plt.xticks([-0.01, -0.005, 0, 0.005, 0.01])
+    plt.ylabel("Turning bias (degrees/cm)")
+    # plt.xticks([-0.01, -0.005, 0, 0.005, 0.01])
     # plt.yticks([-40, -20, 0, 20, 40])
 
     plt.savefig(out_file_path, dpi=300)
@@ -394,8 +395,8 @@ def Translational_gradient_vs_Turing_bias(in_file_path, out_file_path):
     )
 
     plt.xlabel("Translational gradient (mM/cm)")
-    plt.ylabel("Turning bias (degrees)")
-    plt.xticks([-0.01, -0.005, 0, 0.005, 0.01])
+    plt.ylabel("Turning bias (degrees/cm)")
+    # plt.xticks([-0.01, -0.005, 0, 0.005, 0.01])
     # plt.yticks([-40, -20, 0, 20, 40])
 
     plt.savefig(out_file_path, dpi=300)

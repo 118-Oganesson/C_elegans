@@ -123,7 +123,7 @@ pub mod simulation {
     }
     #[inline]
     pub fn concentration(constant: &Const, x: f64, y: f64) -> f64 {
-        constant.alpha * ((x - constant.x_peak).powf(2.0) + (y - constant.y_peak).powf(2.0)).sqrt()
+        constant.alpha * ((x - constant.x_peak).powi(2) + (y - constant.y_peak).powi(2)).sqrt()
     }
     #[inline]
     pub fn sigmoid(x: f64) -> f64 {
@@ -245,8 +245,8 @@ pub mod simulation {
             r[1][1] = r[0][1] + constant.velocity * (mu[0]).sin() * constant.dt;
 
             //走化性能指数の計算
-            ci += ((r[0][0] - constant.x_peak).powf(2.0) + (r[0][1] - constant.y_peak).powf(2.0))
-                .sqrt();
+            ci +=
+                ((r[0][0] - constant.x_peak).powi(2) + (r[0][1] - constant.y_peak).powi(2)).sqrt();
 
             //更新
             for i in 0..8 {
@@ -258,10 +258,9 @@ pub mod simulation {
             }
         }
         //走化性能指数の計算
-        ci +=
-            ((r[0][0] - constant.x_peak).powf(2.0) + (r[0][1] - constant.y_peak).powf(2.0)).sqrt();
+        ci += ((r[0][0] - constant.x_peak).powi(2) + (r[0][1] - constant.y_peak).powi(2)).sqrt();
         ci = 1.0
-            - ci / (constant.x_peak.powf(2.0) + constant.y_peak.powf(2.0)).sqrt()
+            - ci / (constant.x_peak.powi(2) + constant.y_peak.powi(2)).sqrt()
                 / constant.simulation_time
                 * constant.dt;
         if ci < 0.0 {
@@ -349,8 +348,8 @@ pub mod simulation {
             r[1][1] = r[0][1] + constant.velocity * (mu[0]).sin() * constant.dt;
 
             //走化性能指数の計算
-            ci += ((r[0][0] - constant.x_peak).powf(2.0) + (r[0][1] - constant.y_peak).powf(2.0))
-                .sqrt();
+            ci +=
+                ((r[0][0] - constant.x_peak).powi(2) + (r[0][1] - constant.y_peak).powi(2)).sqrt();
 
             //更新
             for i in 0..8 {
@@ -362,10 +361,9 @@ pub mod simulation {
             }
         }
         //走化性能指数の計算
-        ci +=
-            ((r[0][0] - constant.x_peak).powf(2.0) + (r[0][1] - constant.y_peak).powf(2.0)).sqrt();
+        ci += ((r[0][0] - constant.x_peak).powi(2) + (r[0][1] - constant.y_peak).powi(2)).sqrt();
         ci = 1.0
-            - ci / (constant.x_peak.powf(2.0) + constant.y_peak.powf(2.0)).sqrt()
+            - ci / (constant.x_peak.powi(2) + constant.y_peak.powi(2)).sqrt()
                 / constant.simulation_time
                 * constant.dt
             - wave_point;
@@ -1016,9 +1014,24 @@ pub mod analysis {
         y: f64,
     ) -> f64 {
         gauss_setting.c_0
-            * (-((x - constant.x_peak).powf(2.0) + (y - constant.y_peak).powf(2.0))
-                / (2.0 * gauss_setting.lambda.powf(2.0)))
+            * (-((x - constant.x_peak).powi(2) + (y - constant.y_peak).powi(2))
+                / (2.0 * gauss_setting.lambda.powi(2)))
             .exp()
+    }
+
+    pub fn two_gauss_concentration(
+        gauss_setting: &Gausssetting,
+        constant: &Const,
+        x: f64,
+        y: f64,
+    ) -> f64 {
+        gauss_setting.c_0
+            * ((-((x - constant.x_peak).powi(2) + (y - constant.y_peak).powi(2))
+                / (2.0 * gauss_setting.lambda.powi(2)))
+            .exp()
+                - (-((x + constant.x_peak).powi(2) + (y + constant.y_peak).powi(2))
+                    / (2.0 * gauss_setting.lambda.powi(2)))
+                .exp())
     }
 
     #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -1031,15 +1044,19 @@ pub mod analysis {
         pub bin_range: usize,
         pub delta: f64,
         pub bin_number: usize,
+        pub concentration_gradient_max: f64,
     }
 
-    pub fn klinotaxis_bearing(
+    #[allow(clippy::too_many_arguments)]
+    pub fn klinotaxis_analysis(
         gene: &Gene,
         setting: &Setting,
         gauss_setting: &Gausssetting,
         mode: usize,
         periodic_number: usize,
         periodic_number_drain: usize,
+        delta: f64,
+        analysis_use_function: &i32,
     ) -> Vec<Vec<f64>> {
         //定数
         let constant: Const = setting.const_new();
@@ -1068,6 +1085,10 @@ pub mod analysis {
             for _ in 0..time.n_time + time.m_time {
                 c_vec.push_back(gauss_concentration(gauss_setting, &constant, 0.0, 0.0));
             }
+        } else if mode == 2 {
+            for _ in 0..time.n_time + time.m_time {
+                c_vec.push_back(two_gauss_concentration(gauss_setting, &constant, 0.0, 0.0));
+            }
         }
 
         //運動ニューロンの初期活性を0～1の範囲でランダム化
@@ -1085,6 +1106,13 @@ pub mod analysis {
                 c_vec.push_back(concentration(&constant, r[0][0], r[0][1]));
             } else if mode == 1 {
                 c_vec.push_back(gauss_concentration(
+                    gauss_setting,
+                    &constant,
+                    r[0][0],
+                    r[0][1],
+                ));
+            } else if mode == 2 {
+                c_vec.push_back(two_gauss_concentration(
                     gauss_setting,
                     &constant,
                     r[0][0],
@@ -1136,18 +1164,43 @@ pub mod analysis {
             }
         }
 
-        // Bearing
-        let mut bearing: Vec<f64> = bearing(&r_vec, &constant, &time, &periodic_number);
+        let mut x_axis_value: Vec<f64> = Vec::new();
+        if *analysis_use_function == 0 {
+            // Bearing
+            x_axis_value = bearing(&r_vec, &constant, &time, &periodic_number);
+        } else if *analysis_use_function == 1 {
+            // Normal gradient
+            x_axis_value = normal_gradient(
+                &r_vec,
+                &constant,
+                gauss_setting,
+                &time,
+                &periodic_number,
+                delta,
+                mode,
+            );
+        } else if *analysis_use_function == 2 {
+            // Translational gradient
+            x_axis_value = translational_gradient(
+                &r_vec,
+                &constant,
+                gauss_setting,
+                &time,
+                &periodic_number,
+                delta,
+                mode,
+            );
+        }
+
         // Turning bias
-        // let mut turning_bias: Vec<f64> = turning_bias_mu(&mu_vec, &time, &periodic_number);
-        let mut turning_bias: Vec<f64> = turning_bias_bear(&r_vec, &time, &periodic_number);
+        let mut y_axis_value: Vec<f64> = turning_bias_bear(&r_vec, &time, &periodic_number);
 
         // 先頭の要素を削除
-        bearing.drain(..periodic_number_drain * time.periodic_time);
-        turning_bias.drain(..periodic_number_drain * time.periodic_time);
+        x_axis_value.drain(..periodic_number_drain * time.periodic_time);
+        y_axis_value.drain(..periodic_number_drain * time.periodic_time);
 
         // 結果
-        let result: Vec<Vec<f64>> = vec![bearing, turning_bias];
+        let result: Vec<Vec<f64>> = vec![x_axis_value, y_axis_value];
 
         result
     }
@@ -1172,9 +1225,8 @@ pub mod analysis {
                 bearing_point_item[1][1] - bearing_point_item[0][1],
             ];
             let dot_product: f64 = peak_vec[0] * bearing_vec[0] + peak_vec[1] * bearing_vec[1];
-            let magnitude_peak: f64 = (peak_vec[0].powf(2.0) + peak_vec[1].powf(2.0)).sqrt();
-            let magnitude_bearing: f64 =
-                (bearing_vec[0].powf(2.0) + bearing_vec[1].powf(2.0)).sqrt();
+            let magnitude_peak: f64 = (peak_vec[0].powi(2) + peak_vec[1].powi(2)).sqrt();
+            let magnitude_bearing: f64 = (bearing_vec[0].powi(2) + bearing_vec[1].powi(2)).sqrt();
             let angle_radian: f64 = (dot_product / (magnitude_peak * magnitude_bearing)).acos();
             let mut angle_degrees: f64 = angle_radian.to_degrees();
             let cross_product: f64 = peak_vec[0] * bearing_vec[1] - peak_vec[1] * bearing_vec[0];
@@ -1187,31 +1239,19 @@ pub mod analysis {
         bearing
     }
 
-    pub fn turning_bias_mu(mu_vec: &[f64], time: &Time, periodic_number: &usize) -> Vec<f64> {
-        let mut turning_bias: Vec<f64> = Vec::new();
-        for i in periodic_number * time.periodic_time
-            ..time.simulation_time - periodic_number * time.periodic_time
-        {
-            let bias_degrees: f64 =
-                (mu_vec[i + periodic_number * time.periodic_time] - mu_vec[i]).to_degrees();
-            let bias_modulo: f64 = (bias_degrees % 360.0 + 360.0) % 360.0;
-            let bias: f64 = if bias_modulo > 180.0 {
-                bias_modulo - 360.0
-            } else {
-                bias_modulo
-            };
-            turning_bias.push(bias);
-        }
-
-        turning_bias
-    }
-
     pub fn turning_bias_bear(r_vec: &[[f64; 2]], time: &Time, periodic_number: &usize) -> Vec<f64> {
+        //  ターニングバイアス計算用の座標リストを初期化
         let mut turning_bias_point: Vec<[[f64; 2]; 2]> = Vec::new();
+        //  指定された時間範囲内でターニングバイアスの座標リストを生成
         for i in 0..time.simulation_time - periodic_number * time.periodic_time {
             turning_bias_point.push([r_vec[i], r_vec[i + periodic_number * time.periodic_time]]);
         }
+        //  ターニングバイアス計算用のベクトルリストを初期化
         let mut turning_bias_vec: Vec<[[f64; 2]; 2]> = Vec::new();
+        //  ターニングバイアス計算用の距離リストを初期化
+        let mut turning_bias_distance: Vec<f64> = Vec::new();
+
+        //  指定された時間範囲内でターニングバイアスのベクトル・距離リストを生成
         for i in 0..time.simulation_time - 2 * periodic_number * time.periodic_time {
             let turning_bias_vec_1: [f64; 2] = [
                 turning_bias_point[i][1][0] - turning_bias_point[i][0][0],
@@ -1223,20 +1263,25 @@ pub mod analysis {
                 turning_bias_point[i + periodic_number * time.periodic_time][1][1]
                     - turning_bias_point[i + periodic_number * time.periodic_time][0][1],
             ];
-            turning_bias_vec.push([turning_bias_vec_1, turning_bias_vec_2])
+            turning_bias_vec.push([turning_bias_vec_1, turning_bias_vec_2]);
+
+            let distance: f64 = (turning_bias_vec_1[0].powi(2) + turning_bias_vec_1[1].powi(2))
+                .sqrt()
+                + (turning_bias_vec_2[0].powi(2) + turning_bias_vec_2[1].powi(2)).sqrt();
+            turning_bias_distance.push(distance);
         }
 
-        let mut turning_bias: Vec<f64> = Vec::new();
+        //  ターニングバイアスの計算用の角度リストを初期化
+        let mut turning_bias_angle: Vec<f64> = Vec::new();
 
+        //  ターニングバイアスのベクトルから角度を計算
         for turing_bias_vec_item in &turning_bias_vec {
             let dot_product: f64 = turing_bias_vec_item[0][0] * turing_bias_vec_item[1][0]
                 + turing_bias_vec_item[0][1] * turing_bias_vec_item[1][1];
-            let magnitude_vec_1: f64 = (turing_bias_vec_item[0][0].powf(2.0)
-                + turing_bias_vec_item[0][1].powf(2.0))
-            .sqrt();
-            let magnitude_vec_2: f64 = (turing_bias_vec_item[1][0].powf(2.0)
-                + turing_bias_vec_item[1][1].powf(2.0))
-            .sqrt();
+            let magnitude_vec_1: f64 =
+                (turing_bias_vec_item[0][0].powi(2) + turing_bias_vec_item[0][1].powi(2)).sqrt();
+            let magnitude_vec_2: f64 =
+                (turing_bias_vec_item[1][0].powi(2) + turing_bias_vec_item[1][1].powi(2)).sqrt();
             let angle_radian: f64 = (dot_product / (magnitude_vec_1 * magnitude_vec_2)).acos();
             let mut angle_degrees: f64 = angle_radian.to_degrees();
             let cross_product: f64 = turing_bias_vec_item[0][0] * turing_bias_vec_item[1][1]
@@ -1244,48 +1289,19 @@ pub mod analysis {
             if cross_product < 0.0 {
                 angle_degrees *= -1.0;
             }
-            turning_bias.push(angle_degrees);
+            turning_bias_angle.push(angle_degrees);
+        }
+
+        //  ターニングバイアスの計算結果用のリストを初期化
+        let mut turning_bias: Vec<f64> = Vec::new();
+
+        //  ターニングバイアスの計算
+        for (angle, distance) in turning_bias_angle.iter().zip(&turning_bias_distance) {
+            let bias = angle / distance;
+            turning_bias.push(bias);
         }
 
         turning_bias
-    }
-
-    pub fn histgram(bearing: &[f64], turning_bias: &[f64], bin_range: usize) -> Vec<Vec<f64>> {
-        //ヒストグラムの作成
-        let mut bearing_hist: Vec<f64> = Vec::new();
-        let mut turning_bias_hist: Vec<f64> = Vec::new();
-        let mut error_bar: Vec<f64> = Vec::new();
-
-        for i in (-180..180).step_by(bin_range) {
-            let mut mean: Vec<f64> = Vec::new();
-            for (j, &bearing_value) in bearing.iter().enumerate() {
-                if ((i as f64) < bearing_value) && (bearing_value < (i as f64 + bin_range as f64)) {
-                    mean.push(turning_bias[j]);
-                }
-            }
-            // 平均値の計算
-            let mean_value: f64 = if !mean.is_empty() {
-                mean.iter().sum::<f64>() / mean.len() as f64
-            } else {
-                f64::NAN // もし mean が空なら NaN をセット
-            };
-
-            // 標準偏差の計算
-            let std_deviation: f64 = if !mean.is_empty() {
-                let variance: f64 =
-                    mean.iter().map(|&x| (x - mean_value).powi(2)).sum::<f64>() / mean.len() as f64;
-                variance.sqrt()
-            } else {
-                f64::NAN // もし mean が空なら NaN をセット
-            };
-
-            bearing_hist.push(i as f64);
-            turning_bias_hist.push(mean_value);
-            error_bar.push(std_deviation)
-        }
-
-        let hist: Vec<Vec<f64>> = vec![bearing_hist, turning_bias_hist, error_bar];
-        hist
     }
 
     pub fn histgram_count_bearing(
@@ -1321,17 +1337,20 @@ pub mod analysis {
         liner_setting: &Setting,
         gauss_setting: &Gausssetting,
         analysis_setting: &Analysissetting,
+        analysis_use_function: &i32,
     ) {
         let hist_mean: Vec<Vec<f64>> = (0..analysis_setting.analysis_loop)
             .into_par_iter()
             .map(|_| {
-                let result: Vec<Vec<f64>> = klinotaxis_bearing(
+                let result: Vec<Vec<f64>> = klinotaxis_analysis(
                     &result_ga[analysis_setting.gene_number].gene,
                     liner_setting,
                     gauss_setting,
                     analysis_setting.mode,
                     analysis_setting.periodic_number,
                     analysis_setting.periodic_number_drain,
+                    analysis_setting.delta,
+                    analysis_use_function,
                 );
 
                 histgram_count_bearing(&result[0], &result[1], analysis_setting.bin_range)
@@ -1409,178 +1428,14 @@ pub mod analysis {
         }
     }
 
-    pub fn analysis_klinotaxis_bearing_errbar_std(
-        result_ga: &[Ga],
-        file_name: &Filename,
-        liner_setting: &Setting,
-        gauss_setting: &Gausssetting,
-        analysis_setting: &Analysissetting,
-    ) {
-        //シミュレーション
-        let mut bearing: Vec<f64> = Vec::new();
-        let mut turning_bias: Vec<f64> = Vec::new();
-
-        for _ in 0..analysis_setting.analysis_loop {
-            let result: Vec<Vec<f64>> = klinotaxis_bearing(
-                &result_ga[analysis_setting.gene_number].gene,
-                liner_setting,
-                gauss_setting,
-                analysis_setting.mode,
-                analysis_setting.periodic_number,
-                analysis_setting.periodic_number_drain,
-            );
-            bearing.extend(result[0].iter().cloned());
-            turning_bias.extend(result[1].iter().cloned());
-        }
-
-        //ヒストグラム
-        let result_hist: Vec<Vec<f64>> =
-            histgram(&bearing, &turning_bias, analysis_setting.bin_range);
-
-        let bearing_hist: &Vec<f64> = &result_hist[0];
-        let turning_bias_hist: &Vec<f64> = &result_hist[1];
-        let error_bar: &Vec<f64> = &result_hist[2];
-
-        // Open a file for writing
-        let mut file: File = File::create(&file_name.bearing_vs_turning_bias_output).unwrap();
-
-        // Iterate over the vectors and write each triplet of values to a line in the file
-        for ((bearing, turning_bias), &err) in bearing_hist
-            .iter()
-            .zip(turning_bias_hist.iter())
-            .zip(error_bar.iter())
-        {
-            writeln!(file, "{}, {}, {}", bearing, turning_bias, err).unwrap();
-        }
-    }
-
-    pub fn klinotaxis_nomal_gradient(
-        gene: &Gene,
-        setting: &Setting,
-        gauss_setting: &Gausssetting,
-        mode: usize,
-        periodic_number: usize,
-        periodic_number_drain: usize,
-        delta: f64,
-    ) -> Vec<Vec<f64>> {
-        //定数
-        let constant: Const = setting.const_new();
-        //遺伝子の受け渡し
-        let weight: GeneConst = gene.scaling();
-        //時間に関する定数をステップ数に変換
-        let time: Time = time_new(&weight, &constant);
-
-        //配列の宣言
-        let mut y: [[f64; 8]; 2] = [[0.0; 8]; 2];
-        let mut mu: [f64; 2] = [0.0; 2];
-        let mut phi: [f64; 2] = [0.0; 2];
-        let mut r: [[f64; 2]; 2] = [[0.0; 2]; 2];
-
-        //Vecの宣言
-        let mut r_vec: Vec<[f64; 2]> = vec![[0.0; 2]; 1];
-        let mut mu_vec: Vec<f64> = vec![0.0];
-
-        //初期濃度の履歴生成
-        let mut c_vec: VecDeque<f64> = VecDeque::new();
-        if mode == 0 {
-            for _ in 0..time.n_time + time.m_time {
-                c_vec.push_back(concentration(&constant, 0.0, 0.0));
-            }
-        } else if mode == 1 {
-            for _ in 0..time.n_time + time.m_time {
-                c_vec.push_back(gauss_concentration(gauss_setting, &constant, 0.0, 0.0));
-            }
-        }
-
-        //運動ニューロンの初期活性を0～1の範囲でランダム化
-        let _ = thread_rng().try_fill(&mut y[0][4..]);
-
-        //ランダムな向きで配置
-        let mut rng: rand::rngs::ThreadRng = thread_rng();
-        mu[0] = rng.gen_range(0.0..2.0 * PI);
-
-        //オイラー法
-        for k in 0..time.simulation_time - 1 {
-            //濃度の更新
-            c_vec.pop_front();
-            if mode == 0 {
-                c_vec.push_back(concentration(&constant, r[0][0], r[0][1]));
-            } else if mode == 1 {
-                c_vec.push_back(gauss_concentration(
-                    gauss_setting,
-                    &constant,
-                    r[0][0],
-                    r[0][1],
-                ));
-            }
-
-            let y_on_off: [f64; 2] = y_on_off(&weight, &time, &c_vec);
-            let y_osc: f64 = y_osc(&constant, k as f64 * constant.dt);
-
-            for i in 0..8 {
-                let mut synapse: f64 = 0.0;
-                let mut gap: f64 = 0.0;
-                for j in 0..8 {
-                    synapse += weight.w[j][i] * sigmoid(y[0][j] + weight.theta[j]);
-                    gap += weight.g[j][i] * (y[0][j] - y[0][i]);
-                }
-                //外部からの入力
-                let input: f64 = weight.w_on[i] * y_on_off[0]
-                    + weight.w_off[i] * y_on_off[1]
-                    + weight.w_osc[i] * y_osc;
-                //ニューロンの膜電位の更新
-                y[1][i] = y[0][i]
-                    + (-y[0][i] + synapse + gap + input) / constant.time_constant * constant.dt;
-            }
-
-            //方向の更新
-            let d: f64 = sigmoid(y[0][5] + weight.theta[5]) + sigmoid(y[0][6] + weight.theta[6]);
-            let v: f64 = sigmoid(y[0][4] + weight.theta[4]) + sigmoid(y[0][7] + weight.theta[7]);
-            phi[1] = phi[0];
-            phi[0] = weight.w_nmj * (d - v);
-            mu[1] = mu[0] + phi[0] * constant.dt;
-
-            //位置の更新
-            r[1][0] = r[0][0] + constant.velocity * (mu[0]).cos() * constant.dt;
-            r[1][1] = r[0][1] + constant.velocity * (mu[0]).sin() * constant.dt;
-
-            //Vecへの追加
-            r_vec.push(r[1]);
-            mu_vec.push(mu[1]);
-
-            //更新
-            for i in 0..8 {
-                y[0][i] = y[1][i];
-            }
-            mu[0] = mu[1];
-            for i in 0..2 {
-                r[0][i] = r[1][i];
-            }
-        }
-
-        // Normal gradient
-        let mut normal_gradient: Vec<f64> =
-            normal_gradient(&r_vec, &constant, &time, &periodic_number, delta);
-        // Turning bias
-        // let mut turning_bias: Vec<f64> = turning_bias_mu(&mu_vec, &time, &periodic_number);
-        let mut turning_bias: Vec<f64> = turning_bias_bear(&r_vec, &time, &periodic_number);
-
-        // 先頭の要素を削除
-        normal_gradient.drain(..periodic_number_drain * time.periodic_time);
-        turning_bias.drain(..periodic_number_drain * time.periodic_time);
-
-        // 結果
-        let result: Vec<Vec<f64>> = vec![normal_gradient, turning_bias];
-
-        result
-    }
-
     pub fn normal_gradient(
         r_vec: &[[f64; 2]],
         constant: &Const,
+        gauss_setting: &Gausssetting,
         time: &Time,
         periodic_number: &usize,
         delta: f64,
+        mode: usize,
     ) -> Vec<f64> {
         let mut bearing_point: Vec<[[f64; 2]; 2]> = Vec::new();
         for i in 0..time.simulation_time - 2 * periodic_number * time.periodic_time {
@@ -1595,22 +1450,49 @@ pub mod analysis {
                 bearing_point_item[1][0] - bearing_point_item[0][0],
             ];
 
-            let magnitude_bearing: f64 =
-                (bearing_vec[0].powf(2.0) + bearing_vec[1].powf(2.0)).sqrt();
+            let magnitude_bearing: f64 = (bearing_vec[0].powi(2) + bearing_vec[1].powi(2)).sqrt();
 
             let normal_gradient_delta: [f64; 2] = [
                 bearing_vec[0] / magnitude_bearing * delta,
                 bearing_vec[1] / magnitude_bearing * delta,
             ];
 
-            let normal: f64 =
-                (concentration(
+            let mut normal: f64 = 0.0;
+            if mode == 0 {
+                normal = (concentration(
                     constant,
                     bearing_point_item[0][0] + normal_gradient_delta[0],
                     bearing_point_item[0][1] + normal_gradient_delta[1],
-                ) - concentration(constant, bearing_point_item[0][0], bearing_point_item[0][1]))
-                    / delta;
-
+                ) - concentration(
+                    constant,
+                    bearing_point_item[0][0],
+                    bearing_point_item[0][1],
+                )) / delta;
+            } else if mode == 1 {
+                normal = (gauss_concentration(
+                    gauss_setting,
+                    constant,
+                    bearing_point_item[0][0] + normal_gradient_delta[0],
+                    bearing_point_item[0][1] + normal_gradient_delta[1],
+                ) - gauss_concentration(
+                    gauss_setting,
+                    constant,
+                    bearing_point_item[0][0],
+                    bearing_point_item[0][1],
+                )) / delta;
+            } else if mode == 2 {
+                normal = (two_gauss_concentration(
+                    gauss_setting,
+                    constant,
+                    bearing_point_item[0][0] + normal_gradient_delta[0],
+                    bearing_point_item[0][1] + normal_gradient_delta[1],
+                ) - two_gauss_concentration(
+                    gauss_setting,
+                    constant,
+                    bearing_point_item[0][0],
+                    bearing_point_item[0][1],
+                )) / delta;
+            }
             normal_gradient.push(normal);
         }
 
@@ -1621,16 +1503,18 @@ pub mod analysis {
         nomal_gradient: &[f64],
         turning_bias: &[f64],
         bin_number: usize,
+        concentration_gradient_max: f64,
     ) -> Vec<f64> {
         //ヒストグラムの種
         let mut turning_bias_mean: Vec<f64> = Vec::new();
-        let step_size: f64 = 0.02 / bin_number as f64;
+        let step_size: f64 = 2.0 * concentration_gradient_max / bin_number as f64;
 
         for i in 0..bin_number {
             let mut mean: Vec<f64> = Vec::new();
             for (j, &nomal_gradient_value) in nomal_gradient.iter().enumerate() {
-                if ((-0.01 + (i as f64) * step_size) < nomal_gradient_value)
-                    && (nomal_gradient_value < (-0.01 + ((i + 1) as f64) * step_size))
+                if ((-concentration_gradient_max + (i as f64) * step_size) < nomal_gradient_value)
+                    && (nomal_gradient_value
+                        < (-concentration_gradient_max + ((i + 1) as f64) * step_size))
                 {
                     mean.push(turning_bias[j]);
                 }
@@ -1653,11 +1537,12 @@ pub mod analysis {
         liner_setting: &Setting,
         gauss_setting: &Gausssetting,
         analysis_setting: &Analysissetting,
+        analysis_use_function: &i32,
     ) {
         let hist_mean: Vec<Vec<f64>> = (0..analysis_setting.analysis_loop)
             .into_par_iter()
             .map(|_| {
-                let result: Vec<Vec<f64>> = klinotaxis_nomal_gradient(
+                let result: Vec<Vec<f64>> = klinotaxis_analysis(
                     &result_ga[analysis_setting.gene_number].gene,
                     liner_setting,
                     gauss_setting,
@@ -1665,9 +1550,15 @@ pub mod analysis {
                     analysis_setting.periodic_number,
                     analysis_setting.periodic_number_drain,
                     analysis_setting.delta,
+                    analysis_use_function,
                 );
 
-                histgram_count_normal_gradient(&result[0], &result[1], analysis_setting.bin_number)
+                histgram_count_normal_gradient(
+                    &result[0],
+                    &result[1],
+                    analysis_setting.bin_number,
+                    analysis_setting.concentration_gradient_max,
+                )
             })
             .collect::<Vec<Vec<f64>>>();
 
@@ -1678,7 +1569,8 @@ pub mod analysis {
         let mut error_bar_max: Vec<f64> = Vec::new();
         let mut error_bar_min: Vec<f64> = Vec::new();
 
-        let step_size: f64 = 0.02 / analysis_setting.bin_number as f64;
+        let step_size: f64 =
+            2.0 * analysis_setting.concentration_gradient_max / analysis_setting.bin_number as f64;
 
         for i in 0..analysis_setting.bin_number {
             let mut mean: Vec<f64> = Vec::new();
@@ -1717,7 +1609,8 @@ pub mod analysis {
                 f64::NAN // もし mean が空なら NaN をセット
             };
 
-            normal_gradient_hist.push(-0.01 + (i as f64) * step_size);
+            normal_gradient_hist
+                .push(-analysis_setting.concentration_gradient_max + (i as f64) * step_size);
             turning_bias_hist.push(mean_value);
             error_bar_std.push(std);
             error_bar_max.push(max);
@@ -1745,133 +1638,14 @@ pub mod analysis {
         }
     }
 
-    pub fn klinotaxis_translational_gradient(
-        gene: &Gene,
-        setting: &Setting,
-        gauss_setting: &Gausssetting,
-        mode: usize,
-        periodic_number: usize,
-        periodic_number_drain: usize,
-        delta: f64,
-    ) -> Vec<Vec<f64>> {
-        //定数
-        let constant: Const = setting.const_new();
-        //遺伝子の受け渡し
-        let weight: GeneConst = gene.scaling();
-        //時間に関する定数をステップ数に変換
-        let time: Time = time_new(&weight, &constant);
-
-        //配列の宣言
-        let mut y: [[f64; 8]; 2] = [[0.0; 8]; 2];
-        let mut mu: [f64; 2] = [0.0; 2];
-        let mut phi: [f64; 2] = [0.0; 2];
-        let mut r: [[f64; 2]; 2] = [[0.0; 2]; 2];
-
-        //Vecの宣言
-        let mut r_vec: Vec<[f64; 2]> = vec![[0.0; 2]; 1];
-        let mut mu_vec: Vec<f64> = vec![0.0];
-
-        //初期濃度の履歴生成
-        let mut c_vec: VecDeque<f64> = VecDeque::new();
-        if mode == 0 {
-            for _ in 0..time.n_time + time.m_time {
-                c_vec.push_back(concentration(&constant, 0.0, 0.0));
-            }
-        } else if mode == 1 {
-            for _ in 0..time.n_time + time.m_time {
-                c_vec.push_back(gauss_concentration(gauss_setting, &constant, 0.0, 0.0));
-            }
-        }
-
-        //運動ニューロンの初期活性を0～1の範囲でランダム化
-        let _ = thread_rng().try_fill(&mut y[0][4..]);
-
-        //ランダムな向きで配置
-        let mut rng: rand::rngs::ThreadRng = thread_rng();
-        mu[0] = rng.gen_range(0.0..2.0 * PI);
-
-        //オイラー法
-        for k in 0..time.simulation_time - 1 {
-            //濃度の更新
-            c_vec.pop_front();
-            if mode == 0 {
-                c_vec.push_back(concentration(&constant, r[0][0], r[0][1]));
-            } else if mode == 1 {
-                c_vec.push_back(gauss_concentration(
-                    gauss_setting,
-                    &constant,
-                    r[0][0],
-                    r[0][1],
-                ));
-            }
-
-            let y_on_off: [f64; 2] = y_on_off(&weight, &time, &c_vec);
-            let y_osc: f64 = y_osc(&constant, k as f64 * constant.dt);
-
-            for i in 0..8 {
-                let mut synapse: f64 = 0.0;
-                let mut gap: f64 = 0.0;
-                for j in 0..8 {
-                    synapse += weight.w[j][i] * sigmoid(y[0][j] + weight.theta[j]);
-                    gap += weight.g[j][i] * (y[0][j] - y[0][i]);
-                }
-                //外部からの入力
-                let input: f64 = weight.w_on[i] * y_on_off[0]
-                    + weight.w_off[i] * y_on_off[1]
-                    + weight.w_osc[i] * y_osc;
-                //ニューロンの膜電位の更新
-                y[1][i] = y[0][i]
-                    + (-y[0][i] + synapse + gap + input) / constant.time_constant * constant.dt;
-            }
-
-            //方向の更新
-            let d: f64 = sigmoid(y[0][5] + weight.theta[5]) + sigmoid(y[0][6] + weight.theta[6]);
-            let v: f64 = sigmoid(y[0][4] + weight.theta[4]) + sigmoid(y[0][7] + weight.theta[7]);
-            phi[1] = phi[0];
-            phi[0] = weight.w_nmj * (d - v);
-            mu[1] = mu[0] + phi[0] * constant.dt;
-
-            //位置の更新
-            r[1][0] = r[0][0] + constant.velocity * (mu[0]).cos() * constant.dt;
-            r[1][1] = r[0][1] + constant.velocity * (mu[0]).sin() * constant.dt;
-
-            //Vecへの追加
-            r_vec.push(r[1]);
-            mu_vec.push(mu[1]);
-
-            //更新
-            for i in 0..8 {
-                y[0][i] = y[1][i];
-            }
-            mu[0] = mu[1];
-            for i in 0..2 {
-                r[0][i] = r[1][i];
-            }
-        }
-
-        // Translational gradient
-        let mut translational_gradient: Vec<f64> =
-            translational_gradient(&r_vec, &constant, &time, &periodic_number, delta);
-        // Turning bias
-        // let mut turning_bias: Vec<f64> = turning_bias_mu(&mu_vec, &time, &periodic_number);
-        let mut turning_bias: Vec<f64> = turning_bias_bear(&r_vec, &time, &periodic_number);
-
-        // 先頭の要素を削除
-        translational_gradient.drain(..periodic_number_drain * time.periodic_time);
-        turning_bias.drain(..periodic_number_drain * time.periodic_time);
-
-        // 結果
-        let result: Vec<Vec<f64>> = vec![translational_gradient, turning_bias];
-
-        result
-    }
-
     pub fn translational_gradient(
         r_vec: &[[f64; 2]],
         constant: &Const,
+        gauss_setting: &Gausssetting,
         time: &Time,
         periodic_number: &usize,
         delta: f64,
+        mode: usize,
     ) -> Vec<f64> {
         let mut bearing_point: Vec<[[f64; 2]; 2]> = Vec::new();
         for i in 0..time.simulation_time - 2 * periodic_number * time.periodic_time {
@@ -1886,21 +1660,49 @@ pub mod analysis {
                 bearing_point_item[1][1] - bearing_point_item[0][1],
             ];
 
-            let magnitude_bearing: f64 =
-                (bearing_vec[0].powf(2.0) + bearing_vec[1].powf(2.0)).sqrt();
+            let magnitude_bearing: f64 = (bearing_vec[0].powi(2) + bearing_vec[1].powi(2)).sqrt();
 
             let translational_gradient_delta: [f64; 2] = [
                 bearing_vec[0] / magnitude_bearing * delta,
                 bearing_vec[1] / magnitude_bearing * delta,
             ];
 
-            let translational: f64 =
-                (concentration(
+            let mut translational: f64 = 0.0;
+            if mode == 0 {
+                translational = (concentration(
                     constant,
                     bearing_point_item[0][0] + translational_gradient_delta[0],
                     bearing_point_item[0][1] + translational_gradient_delta[1],
-                ) - concentration(constant, bearing_point_item[0][0], bearing_point_item[0][1]))
-                    / delta;
+                ) - concentration(
+                    constant,
+                    bearing_point_item[0][0],
+                    bearing_point_item[0][1],
+                )) / delta;
+            } else if mode == 1 {
+                translational = (gauss_concentration(
+                    gauss_setting,
+                    constant,
+                    bearing_point_item[0][0] + translational_gradient_delta[0],
+                    bearing_point_item[0][1] + translational_gradient_delta[1],
+                ) - gauss_concentration(
+                    gauss_setting,
+                    constant,
+                    bearing_point_item[0][0],
+                    bearing_point_item[0][1],
+                )) / delta;
+            } else if mode == 2 {
+                translational = (two_gauss_concentration(
+                    gauss_setting,
+                    constant,
+                    bearing_point_item[0][0] + translational_gradient_delta[0],
+                    bearing_point_item[0][1] + translational_gradient_delta[1],
+                ) - two_gauss_concentration(
+                    gauss_setting,
+                    constant,
+                    bearing_point_item[0][0],
+                    bearing_point_item[0][1],
+                )) / delta;
+            }
 
             translational_gradient.push(translational);
         }
@@ -1912,19 +1714,22 @@ pub mod analysis {
         translational_gradient: &[f64],
         turning_bias: &[f64],
         bin_number: usize,
+        concentration_gradient_max: f64,
     ) -> Vec<Vec<f64>> {
         // ヒストグラムの種
         let mut turning_bias_mean: Vec<f64> = Vec::new();
         let mut positive_mean: Vec<f64> = Vec::new();
         let mut negative_mean: Vec<f64> = Vec::new();
-        let step_size: f64 = 0.02 / bin_number as f64;
+        let step_size: f64 = 2.0 * concentration_gradient_max / bin_number as f64;
 
         for i in 0..bin_number {
             let mut mean: Vec<f64> = Vec::new();
 
             for (j, &translational_gradient_value) in translational_gradient.iter().enumerate() {
-                if ((-0.01 + (i as f64) * step_size) < translational_gradient_value)
-                    && (translational_gradient_value < (-0.01 + ((i + 1) as f64) * step_size))
+                if ((-concentration_gradient_max + (i as f64) * step_size)
+                    < translational_gradient_value)
+                    && (translational_gradient_value
+                        < (-concentration_gradient_max + ((i + 1) as f64) * step_size))
                 {
                     mean.push(turning_bias[j]);
                 }
@@ -1970,11 +1775,12 @@ pub mod analysis {
         liner_setting: &Setting,
         gauss_setting: &Gausssetting,
         analysis_setting: &Analysissetting,
+        analysis_use_function: &i32,
     ) {
         let hist_mean: Vec<Vec<Vec<f64>>> = (0..analysis_setting.analysis_loop)
             .into_par_iter()
             .map(|_| {
-                let result: Vec<Vec<f64>> = klinotaxis_translational_gradient(
+                let result: Vec<Vec<f64>> = klinotaxis_analysis(
                     &result_ga[analysis_setting.gene_number].gene,
                     liner_setting,
                     gauss_setting,
@@ -1982,12 +1788,14 @@ pub mod analysis {
                     analysis_setting.periodic_number,
                     analysis_setting.periodic_number_drain,
                     analysis_setting.delta,
+                    analysis_use_function,
                 );
 
                 histgram_count_translational_gradient(
                     &result[0],
                     &result[1],
                     analysis_setting.bin_number,
+                    analysis_setting.concentration_gradient_max,
                 )
             })
             .collect::<Vec<Vec<Vec<f64>>>>();
@@ -2001,7 +1809,8 @@ pub mod analysis {
         let mut error_bar_positive_std: Vec<f64> = Vec::new();
         let mut error_bar_negative_std: Vec<f64> = Vec::new();
 
-        let step_size: f64 = 0.02 / analysis_setting.bin_number as f64;
+        let step_size: f64 =
+            2.0 * analysis_setting.concentration_gradient_max / analysis_setting.bin_number as f64;
 
         for i in 0..analysis_setting.bin_number {
             let mut mean: Vec<f64> = Vec::new();
@@ -2076,7 +1885,8 @@ pub mod analysis {
                 f64::NAN // もし mean が空なら NaN をセット
             };
 
-            translational_gradient_hist.push(-0.01 + (i as f64) * step_size);
+            translational_gradient_hist
+                .push(-analysis_setting.concentration_gradient_max + (i as f64) * step_size);
             turning_bias_hist.push(mean_value);
             turning_bias_positive_hist.push(positive_mean_value);
             turning_bias_negative_hist.push(negative_mean_value);
@@ -2193,17 +2003,9 @@ pub mod analysis {
                         &liner_setting,
                         &gauss_setting,
                         &analysis_setting,
+                        j,
                     );
                 } else if *j == 1 {
-                    // turning bias vs bearing
-                    analysis_klinotaxis_bearing_errbar_std(
-                        &result_ga,
-                        &file_name,
-                        &liner_setting,
-                        &gauss_setting,
-                        &analysis_setting,
-                    );
-                } else if *j == 2 {
                     // turning bias vs nomal gradient
                     analysis_klinotaxis_nomal_gradient_errbar_std_max_min(
                         &result_ga,
@@ -2211,8 +2013,9 @@ pub mod analysis {
                         &liner_setting,
                         &gauss_setting,
                         &analysis_setting,
+                        j,
                     );
-                } else if *j == 3 {
+                } else if *j == 2 {
                     // turning bias vs translational gradient
                     analysis_klinotaxis_translational_gradient_errbar_std_positive_negative(
                         &result_ga,
@@ -2220,6 +2023,7 @@ pub mod analysis {
                         &liner_setting,
                         &gauss_setting,
                         &analysis_setting,
+                        j,
                     );
                 }
             }
