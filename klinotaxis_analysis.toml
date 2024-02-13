@@ -1,8 +1,8 @@
 [file_name]
 read_result_json = "./result/concentration_memory/Result_aiz_negative_0.json"
-bearing_vs_turning_bias_output = "./output/limited/bearing_vs_turning_bias/b_vs_t"                               # .txtは不要
-nomal_gradient_vs_turning_bias_output = "./output/concentration_memory/two_gauss_concentration/n_vs_t"           # .txtは不要
-translational_gradient_vs_turning_bias_output = "./output/limited/translational_gradient_vs_turning_bias/t_vs_t" # .txtは不要
+bearing_vs_turning_bias_output = "./output/limited/bearing_vs_turning_bias/b_vs_t"                                           # .txtは不要
+nomal_gradient_vs_turning_bias_output = "./output/concentration_memory/two_gauss_concentration/Result_aiz_negative_0/n_vs_t" # .txtは不要
+translational_gradient_vs_turning_bias_output = "./output/limited/translational_gradient_vs_turning_bias/t_vs_t"             # .txtは不要
 
 [liner_setting]
 alpha = [-0.01001, -0.01] # 濃度勾配の範囲
@@ -16,19 +16,19 @@ simulation_time = 300.0   # シミュレート時間 /s
 time_constant = 0.1       # 時定数 /s
 
 [gauss_setting]
-c_0 = 0.2
-lambda = 1.61
+c_0 = 0.045
+lambda = 2.72938
 
 [analysis_setting]
-gene_number = 0                    # 統計を取る遺伝子の番号（小さいほど優秀な個体）ただし、入力しても意味はない
-mode = 2                           # 濃度関数の選択（mode=0:liner, mode=1:gauss, mode=2:two_gauss）
-analysis_loop = 100_000            # 統計を取る回数
-periodic_number = 3                # 何周期分のデータを計算に使うかと言う数
-periodic_number_drain = 2          # 先頭の何周期分のデータを捨てるかと言う数
-bin_range = 10                     # ヒストグラムのビンの幅(bearing)
-delta = 0.001                      # 濃度勾配の2点間距離
-bin_number = 30                    # ヒストグラムのビンの数(濃度勾配)
-concentration_gradient_max = 0.075 #濃度勾配の最大値
+gene_number = 0                   # 統計を取る遺伝子の番号（小さいほど優秀な個体）ただし、入力しても意味はない
+mode = 2                          # 濃度関数の選択（mode=0:liner, mode=1:gauss, mode=2:two_gauss）
+analysis_loop = 10_000            # 統計を取る回数
+periodic_number = 3               # 何周期分のデータを計算に使うかと言う数
+periodic_number_drain = 2         # 先頭の何周期分のデータを捨てるかと言う数
+bin_range = 10                    # ヒストグラムのビンの幅(bearing)
+delta = 0.001                     # 濃度勾配の2点間距離
+bin_number = 50                   # ヒストグラムのビンの数(濃度勾配)
+concentration_gradient_max = 0.01 #濃度勾配の最大値
 
 [analysis_use_gene]
 mode = 1                    # 分析する遺伝子の番号範囲の指定方法の選択(mode=0:gene_numbers, mode=1:gene_number_range)
