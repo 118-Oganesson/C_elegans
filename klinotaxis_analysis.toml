@@ -1,38 +1,38 @@
 [file_name]
 read_result_json = "./result/concentration_memory/Result_aiz_negative_0.json"
-bearing_vs_turning_bias_output = "./output/limited/bearing_vs_turning_bias/b_vs_t"                                           # .txtは不要
-nomal_gradient_vs_turning_bias_output = "./output/concentration_memory/two_gauss_concentration/Result_aiz_negative_0/n_vs_t" # .txtは不要
-translational_gradient_vs_turning_bias_output = "./output/limited/translational_gradient_vs_turning_bias/t_vs_t"             # .txtは不要
+bearing_vs_turning_bias_output = "./output/limited/bearing_vs_turning_bias/b_vs_t"                                       # .txtは不要
+nomal_gradient_vs_turning_bias_output = "./output/concentration_memory/gauss_concentration/Result_aiz_negative_0/n_vs_t" # .txtは不要
+translational_gradient_vs_turning_bias_output = "./output/limited/translational_gradient_vs_turning_bias/t_vs_t"         # .txtは不要
 
 [liner_setting]
-alpha = [-0.01001, -0.01] # 濃度勾配の範囲
-x_peak = 4.5              # 勾配のピークのx座標 /cm
-y_peak = 0.0              # 勾配のピークのy座標 /cm
-dt = 0.01                 # 時間刻みの幅 /s
-periodic_time = 4.2       # 移動の1サイクルの継続時間 /s
-frequency = 0.033         # 方向の平均周波数 /Hz
-velocity = 0.022          # 線虫の速度 /cm/s
-simulation_time = 300.0   # シミュレート時間 /s
-time_constant = 0.1       # 時定数 /s
+alpha = [-0.010001, -0.01] # 濃度勾配の範囲
+x_peak = 4.5               # 勾配のピークのx座標 /cm
+y_peak = 0.0               # 勾配のピークのy座標 /cm
+dt = 0.01                  # 時間刻みの幅 /s
+periodic_time = 4.2        # 移動の1サイクルの継続時間 /s
+frequency = 0.033          # 方向の平均周波数 /Hz
+velocity = 0.022           # 線虫の速度 /cm/s
+simulation_time = 200.0    # シミュレート時間 /s
+time_constant = 0.1        # 時定数 /s
 
 [gauss_setting]
-c_0 = 0.045
-lambda = 2.72938
+c_0 = 1
+lambda = 1.61
 
 [analysis_setting]
 gene_number = 0                   # 統計を取る遺伝子の番号（小さいほど優秀な個体）ただし、入力しても意味はない
-mode = 2                          # 濃度関数の選択（mode=0:liner, mode=1:gauss, mode=2:two_gauss）
-analysis_loop = 10_000            # 統計を取る回数
+mode = 1                          # 濃度関数の選択（mode=0:liner, mode=1:gauss, mode=2:two_gauss）
+analysis_loop = 100_000           # 統計を取る回数
 periodic_number = 3               # 何周期分のデータを計算に使うかと言う数
-periodic_number_drain = 2         # 先頭の何周期分のデータを捨てるかと言う数
+periodic_number_drain = 3         # 先頭の何周期分のデータを捨てるかと言う数
 bin_range = 10                    # ヒストグラムのビンの幅(bearing)
 delta = 0.001                     # 濃度勾配の2点間距離
-bin_number = 50                   # ヒストグラムのビンの数(濃度勾配)
-concentration_gradient_max = 0.01 #濃度勾配の最大値
+bin_number = 30                   # ヒストグラムのビンの数(濃度勾配)
+concentration_gradient_max = 0.05 #濃度勾配の最大値
 
 [analysis_use_gene]
 mode = 1                    # 分析する遺伝子の番号範囲の指定方法の選択(mode=0:gene_numbers, mode=1:gene_number_range)
-gene_numbers = [0]          # []内の番号を指定
+gene_numbers = [0, 10]      # []内の番号を指定
 gene_number_range = [0, 10] # [start, end]のstartからendまでの番号を指定(startおよびendも含む)
 
 [analysis_use_function]
