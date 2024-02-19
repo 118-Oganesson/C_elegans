@@ -4,11 +4,11 @@ import json
 import numpy as np
 
 
-def gene_aser_synapse_change(gene_number, start, stop, num):
+def gene_aser_aiy_synapse_change(gene_number, start, stop, num):
     """
     gene_number: 改変する遺伝子の番号
-    start: 10,11の結合に対して加える範囲の最小
-    stop: 10,11の結合に対して加える範囲の最大
+    start: 10,11の結合(ASER-AIY)に対して加える範囲の最小
+    stop: 10,11の結合(ASER-AIY)に対して加える範囲の最大
     num: 範囲の分割数
     """
 

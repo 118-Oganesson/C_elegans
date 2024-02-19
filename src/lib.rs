@@ -668,20 +668,37 @@ pub mod genetic_algorithm {
             .expect("ファイルへの書き込みに失敗しました");
     }
 
-    pub fn population_new_aiy_negative(gen_size: usize, pop_size: usize) -> Vec<Ga> {
+    #[allow(unused_variables)]
+    pub fn population_new_optimize_aser_aiy_positive(gen_size: usize, pop_size: usize) -> Vec<Ga> {
         let mut rng: rand::rngs::ThreadRng = thread_rng();
         let population: Vec<Ga> = (0..pop_size)
             .map(|_| {
-                let mut gene: Gene = (0..gen_size)
-                    .map(|_| rng.gen_range(-1.0..1.0))
-                    .collect::<Gene>();
-
-                // 遺伝子番号8〜11(w_on, w_offの結合)
-                for i in 8..12 {
-                    if gene.gene[i] > 0.0 {
-                        gene.gene[i] = -gene.gene[i]
-                    }
-                }
+                let gene: Gene = Gene {
+                    gene: vec![
+                        -0.8094022576319283,
+                        -0.6771492613425638,
+                        0.05892807075993428,
+                        -0.4894407617977082,
+                        0.1593721867510597,
+                        0.3576592038271041,
+                        -0.5664294232926526,
+                        -0.7853343958692636,
+                        0.6552003805912084,
+                        -0.6492992485125678,
+                        rng.gen_range(0.0..1.0),
+                        rng.gen_range(0.0..1.0),
+                        -1.0,
+                        -0.7386107983898611,
+                        0.02074396537515929,
+                        0.7150315462816783,
+                        -0.9243504880454858,
+                        0.1353396882729762,
+                        0.9494528443702027,
+                        0.7727883271643218,
+                        -0.6046043758402895,
+                        0.7969062294208619,
+                    ],
+                };
 
                 Ga { value: 0.0, gene }
             })
@@ -689,7 +706,11 @@ pub mod genetic_algorithm {
         population
     }
 
-    pub fn mutation_aiy_negative(gene: &Ga, rate: f64, mean_std: (f64, f64)) -> Ga {
+    pub fn mutation_aiy_optimize_aser_aiy_positive(
+        gene: &Ga,
+        rate: f64,
+        mean_std: (f64, f64),
+    ) -> Ga {
         let mut rng: rand::rngs::ThreadRng = rand::thread_rng();
         let normal: Normal<f64> =
             Normal::new(mean_std.0, mean_std.1).expect("Failed to create normal distribution");
@@ -697,24 +718,16 @@ pub mod genetic_algorithm {
         let mut mutated_gene: Gene = gene.gene.clone();
 
         for (index, val) in mutated_gene.gene.iter_mut().enumerate() {
-            if index > 7 && index < 12 {
-                // 遺伝子番号8〜11(w_on, w_offの結合)
+            if index > 9 && index < 12 {
+                // 遺伝子番号10〜11(w_offの結合)
                 if rng.gen::<f64>() < rate {
                     let delta: f64 = normal.sample(&mut rng);
                     *val += delta;
-                    if *val > 0.0 {
+                    if *val < 0.0 {
                         *val -= delta
-                    } else if *val < -1.0 {
-                        *val = -1.0
+                    } else if *val > 1.0 {
+                        *val = 1.0
                     }
-                }
-            } else if rng.gen::<f64>() < rate {
-                let delta: f64 = normal.sample(&mut rng);
-                *val += delta;
-                if *val > 1.0 {
-                    *val = 1.0;
-                } else if *val < -1.0 {
-                    *val = -1.0;
                 }
             }
         }
@@ -811,7 +824,7 @@ pub mod genetic_algorithm {
         for count in 0..ga_setting.ga_count {
             //初期集団を生成
             let mut population: Vec<Ga> =
-                population_new_aiz_negative(ga_setting.gen_size, ga_setting.pop_size);
+                population_new_optimize_aser_aiy_positive(ga_setting.gen_size, ga_setting.pop_size);
 
             //個体の評価(version:0は通常、version:1は波打つかチェックしている)
             let mut evaluate: Vec<Ga> =
@@ -853,7 +866,11 @@ pub mod genetic_algorithm {
                 let mut rng: rand::rngs::ThreadRng = rand::thread_rng();
                 for ind in clone.iter() {
                     if rng.gen::<f64>() < ga_setting.mut_pb {
-                        mutant.push(mutation_aiz_negative(ind, 0.4, (0.0, 0.05)));
+                        mutant.push(mutation_aiy_optimize_aser_aiy_positive(
+                            ind,
+                            0.4,
+                            (0.0, 0.05),
+                        ));
                     }
                 }
 
@@ -863,7 +880,7 @@ pub mod genetic_algorithm {
                     offspring.extend(select);
                     offspring.extend(mate);
                     offspring.extend(mutant);
-                    let population: Vec<Ga> = population_new_aiz_negative(
+                    let population: Vec<Ga> = population_new_optimize_aser_aiy_positive(
                         ga_setting.gen_size,
                         ga_setting.pop_size - offspring.len(),
                     );
@@ -878,7 +895,7 @@ pub mod genetic_algorithm {
                     let mut offspring: Vec<Ga> = Vec::new();
                     offspring.extend(mate);
                     offspring.extend(mutant);
-                    let population: Vec<Ga> = population_new_aiz_negative(
+                    let population: Vec<Ga> = population_new_optimize_aser_aiy_positive(
                         ga_setting.gen_size,
                         ga_setting.pop_size - ga_setting.sel_top - offspring.len(),
                     );
@@ -933,8 +950,8 @@ pub mod genetic_algorithm {
         let result_json: String = serde_json::to_string_pretty(&result_evaluate_gajson).unwrap();
 
         //JSON文字列をファイルに書き込む
-        let mut file: File =
-            File::create("Result_aiz_negative.json").expect("ファイルの作成に失敗しました");
+        let mut file: File = File::create("Result_aiz_negative_optimize_aser_aiy_positive.json")
+            .expect("ファイルの作成に失敗しました");
         file.write_all(result_json.as_bytes())
             .expect("ファイルへの書き込みに失敗しました");
     }
